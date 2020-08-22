@@ -1,12 +1,12 @@
 {
-  "name": "qmk-hid-display",
+  "name": "qmk-hid-display-bwang",
   "version": "1.0.0",
-  "description": "A small node script that will communicate with a qmk keyboard over raw hid",
+  "description": "A small node script that will communicate with a qmk keyboard over raw hid. Customized over James Lissiak's original version.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
-  "author": "James Lissiak",
+  "author": "Brandon Wang",
   "license": "MIT",
   "dependencies": {
     "microstats": "0.1.2",

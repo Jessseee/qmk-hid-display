@@ -34,20 +34,10 @@ function startPerfMonitor() {
     counters.set('cpu', '\\Processor(_Total)\\% Processor Time');
     counters.set('mem', '\\Memory\\% Committed Bytes In Use');
     counters.set('dsk', '\\PhysicalDisk(_Total)\\% Disk Time');
-    counters.set('net_used', '\\Network Interface(*)\\Bytes Total/sec');
-    counters.set('net_total', '\\Network Interface(*)\\Current Bandwidth');
 
     function getStat(name, data) {
         // Convert the counter data into a value 1-10 that we can use to generate a bar graph
         const value = Math.floor(data.counters[counters.get(name)] / 100.0 * 10);
-        return Math.min(10, Math.max(1, value));
-    }
-
-    function getNetwork(data) {
-        // Calculate the network usage and turn it into a value 1-10 that we can use to generate a bar graph
-        const used = data.counters[counters.get('net_used')] * 8.0;
-        const total = data.counters[counters.get('net_total')];
-        const value = Math.floor(used / total * 10);
         return Math.min(10, Math.max(1, value));
     }
 
@@ -65,14 +55,13 @@ function startPerfMonitor() {
         const cpu = getStat('cpu', data);
         const mem = getStat('mem', data);
         const dsk = getStat('dsk', data);
-        const net = getNetwork(data);
 
         // Create a screen with the data
         const screen =
             `cpu: ${'\u0008'.repeat(cpu)}${' '.repeat(Math.max(0, 10 - cpu))} |  ${title(0, 0)} ` +
             `mem: ${'\u0008'.repeat(mem)}${' '.repeat(Math.max(0, 10 - mem))} |  ${title(1, 0)} ` +
             `dsk: ${'\u0008'.repeat(dsk)}${' '.repeat(Math.max(0, 10 - dsk))} |  ${title(2, 0)} ` +
-            `net: ${'\u0008'.repeat(net)}${' '.repeat(Math.max(0, 10 - net))} |  ${title(3, 0)} `;
+            `${' '.repeat(15)} |  ${title(3, 0)} `;
 
         // Set this to be the latest performance info
         screens[SCREEN_PERF] = screen;
