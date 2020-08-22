@@ -5,7 +5,7 @@ const perfmon = require('perfmon');
 const request = require('request');
 
 // Keyboard info
-const KEYBOARD_NAME = "Lily58";
+const KEYBOARD_NAME = "SPIN";
 const KEYBOARD_USAGE_ID =  0x61;
 const KEYBOARD_USAGE_PAGE = 0xFF60;
 const KEYBOARD_UPDATE_TIME = 1000;
