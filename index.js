@@ -405,15 +405,6 @@ app.listen(8888);
 async function startSpotifyMonitor() {
     var refreshToken = nconf.get('refreshToken');
     spotifyApi.setRefreshToken(refreshToken);
-    spotifyApi.refreshAccessToken().then(
-      function(data) {
-        console.log('The access token has been refreshed!');
-        spotifyApi.setAccessToken(data.body['access_token']);
-      },
-      function(err) {
-        console.log('Could not refresh access token', err);
-      }
-    );
     while (true) {
         spotifyApi.getMyCurrentPlaybackState({})
         .then(function(data) {
@@ -433,6 +424,15 @@ async function startSpotifyMonitor() {
           console.log('Something went wrong!', err);
           var output = "Not Connected."
           screens[SCREEN_SPOTIFY] = output + ' '.repeat(84 - output.length);
+          spotifyApi.refreshAccessToken().then(
+            function(data) {
+              console.log('The access token has been refreshed!');
+              spotifyApi.setAccessToken(data.body['access_token']);
+            },
+            function(err) {
+              console.log('Could not refresh access token', err);
+            }
+          )
         });
         await wait(KEYBOARD_UPDATE_TIME * 5);
     }
