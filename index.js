@@ -412,8 +412,11 @@ async function startSpotifyMonitor() {
           var output = "Connected but not playing."
           if (data.body.item)
           {
-            var output = '\u000e ' + data.body.item.name;
+            // Song name
+            var output = data.body.item.name;
             output += ' '.repeat(21-(output.length % 21));
+
+            // Progress bar
             var progress = data.body.progress_ms / data.body.item.duration_ms;
             var progressQuantized = Math.floor(19 * progress);
             var progressRemainder = progress * 19 - progressQuantized;
@@ -422,6 +425,14 @@ async function startSpotifyMonitor() {
             progressBar += ' '.repeat(19 - progressBar.length);
             progressBar = '\u009c' + progressBar + '\u009d';
             output += progressBar;
+
+            // Time
+            var curS = Math.floor(data.body.progress_ms / 1000) % 60;
+            var curM = Math.floor((data.body.progress_ms / 1000 - curS) / 60);
+            var totalS = Math.floor(data.body.item.duration_ms / 1000) % 60;
+            var totalM = Math.floor((data.body.item.duration_ms / 1000 - totalS) / 60);
+            var duration = curM + ':' + curS + '/' + totalM + ':' + totalS;
+            output += '\u000e' + ' '.repeat(20 - duration.length) + duration
           }
           screens[SCREEN_SPOTIFY] = output + ' '.repeat(84 - output.length);
         }, function(err) {
