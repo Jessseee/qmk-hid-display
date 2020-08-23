@@ -1,1 +1,5 @@
 node_modules
+user.json
+config.json
+secret.txt
+*~

@@ -3,9 +3,42 @@
 const hid = require('node-hid');
 const perfmon = require('perfmon');
 const request = require('request');
+const nconf = require('nconf');
+const fs = require('fs');
+const crypto = require('crypto');
+const SpotifyWebApi = require('spotify-web-api-node');
+
+// config
+// get a secret or create one. hacky but whatever 
+var secret;
+const secret_file = './secret.txt';
+if (fs.existsSync(secret_file)) {
+  secret = fs.readFileSync(secret_file);
+} else {
+  const buf = Buffer.alloc(10);
+  secret = crypto.randomFillSync(buf).toString('hex');
+  fs.writeFile(secret_file, secret, function() {});
+}
+
+// read conf, encrypt user data
+nconf.argv()
+  .file('user', {
+    file: './user.json',
+    secure: {
+      secret: secret,
+      alg: 'aes-256-ctr'
+    }
+  })
+  .file('./config.json')
+  .defaults({
+    'keyboardName': 'SPIN',
+    'spotifyClientId': '<spotify client id>',
+    'spotifyClientSecret': '<spotify client secret>'
+  });
+nconf.load();
 
 // Keyboard info
-const KEYBOARD_NAME = "SPIN";
+const KEYBOARD_NAME = nconf.get('keyboardName');
 const KEYBOARD_USAGE_ID =  0x61;
 const KEYBOARD_USAGE_PAGE = 0xFF60;
 const KEYBOARD_UPDATE_TIME = 1000;
@@ -14,7 +47,8 @@ const KEYBOARD_UPDATE_TIME = 1000;
 const SCREEN_PERF = 0;
 const SCREEN_STOCK = 1;
 const SCREEN_WEATHER = 2;
-const screens = ["", "", ""];
+const SCREEN_SPOTIFY = 3;
+const screens = ["", "", "", ""];
 let currentScreenIndex = 0;
 
 let keyboard = null;
@@ -270,12 +304,140 @@ function updateKeyboardScreen() {
         // Send that data to the keyboard
         sendToKeyboard(screens[currentScreenIndex]);
     }
+    else if (keyboard)
+    {
+        console.log('incomplete screen: ' + currentScreenIndex + ' size: ' + screens[currentScreenIndex].length)
+    }
 }
 
 // Start the monitors that collect the info to display
 startPerfMonitor();
 startStockMonitor();
 startWeatherMonitor();
+
+// spotify stuff
+// we need a web server
+
+// credentials are optional
+const spotifyClientId = nconf.get('spotifyClientId')
+const spotifyClientSecret = nconf.get('spotifyClientSecret')
+const spotifyCallbackUri = 'http://localhost:8888/spotifyCallback'
+var spotifyApi = new SpotifyWebApi({
+    clientId: spotifyClientId,
+    clientSecret: spotifyClientSecret,
+    redirectUri: spotifyCallbackUri
+  });
+  
+
+var express = require('express'); // Express web server framework
+var cors = require('cors');
+var querystring = require('querystring');
+var cookieParser = require('cookie-parser');
+
+var stateKey = 'spotify_auth_state';
+
+var app = express();
+
+app.use(express.static(__dirname + '/public'))
+   .use(cors())
+   .use(cookieParser());
+
+app.get('/login', function(req, res) {
+
+  const buf = Buffer.alloc(16);
+  var state = crypto.randomFillSync(buf).toString('hex');
+  res.cookie(stateKey, state);
+
+  var scopes = ['user-read-private',
+                'user-read-email',
+                'user-read-playback-state',
+                'user-modify-playback-state',
+                'user-read-currently-playing'];
+  spotifyApi.createAuthorizeURL(scopes, state);
+  res.redirect(spotifyApi.createAuthorizeURL(scopes, state));
+});
+
+app.get('/spotifyCallback', function(req, res) {
+
+  // your application requests refresh and access tokens
+  // after checking the state parameter
+
+  var code = req.query.code || null;
+  var state = req.query.state || null;
+  var storedState = req.cookies ? req.cookies[stateKey] : null;
+
+  if (state === null || state !== storedState) {
+    res.redirect('/#' +
+      querystring.stringify({
+        error: 'state_mismatch'
+      }));
+  } else {
+    res.clearCookie(stateKey);
+    spotifyApi.authorizationCodeGrant(code).then(
+      function(data) {
+        var accessToken = data.body.access_token,
+            refreshToken = data.body.refresh_token;
+        spotifyApi.setAccessToken(accessToken);
+        spotifyApi.setRefreshToken(refreshToken);
+        nconf.set('refreshToken', refreshToken);
+        nconf.save('user');
+
+        res.redirect('/#' +
+          querystring.stringify({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          }));
+      },
+      function(err) {
+        console.log('Something went wrong!', err);
+        res.redirect('/#' +
+          querystring.stringify({
+            error: 'invalid_token'
+          }));
+      }
+    );
+  }
+});
+
+console.log('Listening on 8888');
+app.listen(8888);
+
+async function startSpotifyMonitor() {
+    var refreshToken = nconf.get('refreshToken');
+    spotifyApi.setRefreshToken(refreshToken);
+    spotifyApi.refreshAccessToken().then(
+      function(data) {
+        console.log('The access token has been refreshed!');
+        spotifyApi.setAccessToken(data.body['access_token']);
+      },
+      function(err) {
+        console.log('Could not refresh access token', err);
+      }
+    );
+    while (true) {
+        spotifyApi.getMyCurrentPlaybackState({})
+        .then(function(data) {
+          // Output items
+          var output = "Connected but not playing."
+          if (data.body.item)
+          {
+            console.log("Now Playing: ",data.body);
+            var output = "Now Playing: " + data.body.item.name;
+            output += ' '.repeat(21-(output.length % 21));
+            var progress = data.body.progress_ms / data.body.item.duration_ms;
+            var progressQuantized = Math.floor(21 * progress)
+            output += '-'.repeat(progressQuantized) + ' '.repeat(21 - progressQuantized);
+          }
+          screens[SCREEN_SPOTIFY] = output + ' '.repeat(84 - output.length);
+        }, function(err) {
+          console.log('Something went wrong!', err);
+          var output = "Not Connected."
+          screens[SCREEN_SPOTIFY] = output + ' '.repeat(84 - output.length);
+        });
+        await wait(KEYBOARD_UPDATE_TIME * 5);
+    }
+}
+startSpotifyMonitor();
 
 // Update the data on the keyboard with the current info screen every second
 setInterval(updateKeyboardScreen, KEYBOARD_UPDATE_TIME);
