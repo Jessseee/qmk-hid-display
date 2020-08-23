@@ -412,17 +412,21 @@ async function startSpotifyMonitor() {
           var output = "Connected but not playing."
           if (data.body.item)
           {
-            console.log("Now Playing: ",data.body);
-            var output = "Now Playing: " + data.body.item.name;
+            var output = '\u000e ' + data.body.item.name;
             output += ' '.repeat(21-(output.length % 21));
             var progress = data.body.progress_ms / data.body.item.duration_ms;
-            var progressQuantized = Math.floor(21 * progress)
-            output += '-'.repeat(progressQuantized) + ' '.repeat(21 - progressQuantized);
+            var progressQuantized = Math.floor(19 * progress);
+            var progressRemainder = progress * 19 - progressQuantized;
+            var progressRemainderQuantized = Math.floor(progressRemainder * 6);
+            var progressBar = '\u009b'.repeat(progressQuantized) + String.fromCharCode(149 + progressRemainderQuantized);
+            progressBar += ' '.repeat(19 - progressBar.length);
+            progressBar = '\u009c' + progressBar + '\u009d';
+            output += progressBar;
           }
           screens[SCREEN_SPOTIFY] = output + ' '.repeat(84 - output.length);
         }, function(err) {
           console.log('Something went wrong!', err);
-          var output = "Not Connected."
+          var output = "Spotify not connected."
           screens[SCREEN_SPOTIFY] = output + ' '.repeat(84 - output.length);
           spotifyApi.refreshAccessToken().then(
             function(data) {
