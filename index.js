@@ -6,11 +6,12 @@ const request = require('request');
 const nconf = require('nconf');
 const fs = require('fs');
 const crypto = require('crypto');
+const { app, BrowserWindow, Menu, Tray, session } = require('electron')
 const SpotifyWebApi = require('spotify-web-api-node');
 
 // config
 // get a secret or create one. hacky but whatever 
-var secret;
+let secret = '';
 const secret_file = './secret.txt';
 if (fs.existsSync(secret_file)) {
   secret = fs.readFileSync(secret_file);
@@ -57,9 +58,9 @@ let screenLastUpdate = null;
 
 // Helper function to wait a few milliseconds using a promise
 function wait(ms) {
-    return new Promise((resolve) => {
-        setTimeout(resolve, ms);
-    })
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  })
 }
 
 function startPerfMonitor() {
@@ -321,138 +322,209 @@ startWeatherMonitor();
 // credentials are optional
 const spotifyClientId = nconf.get('spotifyClientId')
 const spotifyClientSecret = nconf.get('spotifyClientSecret')
-const spotifyCallbackUri = 'http://localhost:8888/spotifyCallback'
-var spotifyApi = new SpotifyWebApi({
+const spotifyCallbackUri = 'http://localhost/spotifyCallback'
+const spotifyApi = new SpotifyWebApi({
     clientId: spotifyClientId,
     clientSecret: spotifyClientSecret,
     redirectUri: spotifyCallbackUri
   });
-  
 
-var express = require('express'); // Express web server framework
-var cors = require('cors');
-var querystring = require('querystring');
-var cookieParser = require('cookie-parser');
+let spotifyAuthWin = null;
+let spotifyClosedWindowManually = false;
+let spotifyLoggedIn = false;
+let tray = null;
+let lastLoggedIn = null;
 
-var stateKey = 'spotify_auth_state';
+function spotifyCreateAuthWin() {
+  if (spotifyAuthWin) {
+    return;
+  } 
+  spotifyAuthWin = new BrowserWindow({
+    width: 500,
+    height: 900,
+  });
+  const scopes = ['user-read-private',
+                  'user-read-email',
+                  'user-read-playback-state',
+                  'user-modify-playback-state',
+                  'user-read-currently-playing'];
+  const authUrl = spotifyApi.createAuthorizeURL(scopes, 'randomstate');
+  console.log(authUrl);
+  // for whatever reason this doesnt work unless i load this first
+  spotifyAuthWin.loadURL('about:blank');
+  spotifyAuthWin.loadURL(authUrl);
 
-var app = express();
+  const {session: {webRequest}} = spotifyAuthWin.webContents;
 
-app.use(express.static(__dirname + '/public'))
-   .use(cors())
-   .use(cookieParser());
-
-app.get('/login', function(req, res) {
-
-  const buf = Buffer.alloc(16);
-  var state = crypto.randomFillSync(buf).toString('hex');
-  res.cookie(stateKey, state);
-
-  var scopes = ['user-read-private',
-                'user-read-email',
-                'user-read-playback-state',
-                'user-modify-playback-state',
-                'user-read-currently-playing'];
-  spotifyApi.createAuthorizeURL(scopes, state);
-  res.redirect(spotifyApi.createAuthorizeURL(scopes, state));
-});
-
-app.get('/spotifyCallback', function(req, res) {
-
-  // your application requests refresh and access tokens
-  // after checking the state parameter
-
-  var code = req.query.code || null;
-  var state = req.query.state || null;
-  var storedState = req.cookies ? req.cookies[stateKey] : null;
-
-  if (state === null || state !== storedState) {
-    res.redirect('/#' +
-      querystring.stringify({
-        error: 'state_mismatch'
-      }));
-  } else {
-    res.clearCookie(stateKey);
+  const filter = {
+    urls: [
+      'http://localhost/spotifyCallback*'
+    ]
+  };
+  webRequest.onBeforeRequest(filter, async ({url}) => {
+    const code = new URLSearchParams(url.substr(spotifyCallbackUri.length)).get('code');
     spotifyApi.authorizationCodeGrant(code).then(
       function(data) {
-        var accessToken = data.body.access_token,
+        const accessToken = data.body.access_token,
             refreshToken = data.body.refresh_token;
         spotifyApi.setAccessToken(accessToken);
         spotifyApi.setRefreshToken(refreshToken);
         nconf.set('refreshToken', refreshToken);
         nconf.save('user');
-
-        res.redirect('/#' +
-          querystring.stringify({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          }));
+        console.log('logged in');
+        spotifyLoggedIn = true;
+        updateContextMenu();
       },
       function(err) {
-        console.log('Something went wrong!', err);
-        res.redirect('/#' +
-          querystring.stringify({
-            error: 'invalid_token'
-          }));
+        console.log('Something went wrong in auth!', err);
+        spotifyLoggedIn = false;
+        updateContextMenu();
       }
-    );
-  }
-});
+    )
+    return spotifyDestroyAuthWin();
+  });
 
-console.log('Listening on 8888');
-app.listen(8888);
+  spotifyAuthWin.on('authenticated', () => {
+    spotifyClosedWindowManually = false;
+    spotifyDestroyAuthWin();
+  });
+
+  spotifyAuthWin.on('closed', () => {
+    spotifyClosedWindowManually = true;
+    spotifyAuthWin = null;
+  });
+}
+
+function spotifyDestroyAuthWin() {
+  if (!spotifyAuthWin) return;
+  spotifyAuthWin.close();
+  spotifyAuthWin = null;
+}
+
+function spotifyLogOut()
+{
+  session.defaultSession.clearStorageData([], (data) => {});
+  spotifyApi.setRefreshToken('');
+  spotifyApi.setAccessToken('');
+  nconf.set('refreshToken', '');
+  nconf.save('user');
+  spotifyLoggedIn = false;
+  spotifyClosedWindowManually = true;
+  updateContextMenu();
+}
 
 async function startSpotifyMonitor() {
-    var refreshToken = nconf.get('refreshToken');
+    let refreshToken = nconf.get('refreshToken');
     spotifyApi.setRefreshToken(refreshToken);
     while (true) {
-        spotifyApi.getMyCurrentPlaybackState({})
-        .then(function(data) {
-          // Output items
-          var output = "Connected but not playing."
-          if (data.body.item)
-          {
-            // Song name
-            var output = data.body.item.name;
-            output += ' '.repeat(21-(output.length % 21));
-
-            // Progress bar
-            var progress = data.body.progress_ms / data.body.item.duration_ms;
-            var progressQuantized = Math.floor(19 * progress);
-            var progressRemainder = progress * 19 - progressQuantized;
-            var progressRemainderQuantized = Math.floor(progressRemainder * 6);
-            var progressBar = '\u009b'.repeat(progressQuantized) + String.fromCharCode(149 + progressRemainderQuantized);
-            progressBar += ' '.repeat(19 - progressBar.length);
-            progressBar = '\u009c' + progressBar + '\u009d';
-            output += progressBar;
-
-            // Time
-            var curS = Math.floor(data.body.progress_ms / 1000) % 60;
-            var curM = Math.floor((data.body.progress_ms / 1000 - curS) / 60);
-            var totalS = Math.floor(data.body.item.duration_ms / 1000) % 60;
-            var totalM = Math.floor((data.body.item.duration_ms / 1000 - totalS) / 60);
-            var duration = curM + ':' + curS + '/' + totalM + ':' + totalS;
-            output += '\u000e' + ' '.repeat(20 - duration.length) + duration
-          }
+        if (spotifyApi.getRefreshToken() == '') {
+          let output = 'Spotify: logged out';
           screens[SCREEN_SPOTIFY] = output + ' '.repeat(84 - output.length);
-        }, function(err) {
-          console.log('Something went wrong!', err);
-          var output = "Spotify not connected."
-          screens[SCREEN_SPOTIFY] = output + ' '.repeat(84 - output.length);
-          spotifyApi.refreshAccessToken().then(
-            function(data) {
-              console.log('The access token has been refreshed!');
-              spotifyApi.setAccessToken(data.body['access_token']);
-            },
-            function(err) {
-              console.log('Could not refresh access token', err);
+          spotifyLoggedIn = false;
+          updateContextMenu();
+        } else {
+          spotifyApi.getMyCurrentPlaybackState({})
+          .then(function(data) {
+            // Output items
+            let output = 'Spotify'
+            if (data.body.item) {
+              // Song name
+              output = data.body.item.name;
+              output += ' '.repeat(21-(output.length % 21));
+
+              // Progress bar
+              const progress = data.body.progress_ms / data.body.item.duration_ms;
+              const progressQuantized = Math.floor(19 * progress);
+              const progressRemainder = progress * 19 - progressQuantized;
+              const progressRemainderQuantized = Math.floor(progressRemainder * 6);
+
+              let progressBar = '\u009b'.repeat(progressQuantized) + String.fromCharCode(149 + progressRemainderQuantized);
+              progressBar += ' '.repeat(19 - progressBar.length);
+              progressBar = '\u009c' + progressBar + '\u009d';
+              output += progressBar;
+
+              // Time
+              let curS = Math.floor((data.body.progress_ms / 1000) % 60);
+              let curM = Math.floor((data.body.progress_ms / 1000 - curS) / 60);
+              let totalS = Math.floor(data.body.item.duration_ms / 1000) % 60;
+              let totalM = Math.floor((data.body.item.duration_ms / 1000 - totalS) / 60);
+              if (curS < 10) {
+                curS = '0' + curS;
+              }
+              if (totalS < 10) {
+                totalS = '0' + totalS
+              }
+
+              const duration = curM + ':' + curS + '/' + totalM + ':' + totalS;
+              output += '\u000e' + ' '.repeat(20 - duration.length) + duration
             }
-          )
-        });
-        await wait(KEYBOARD_UPDATE_TIME * 5);
+            if (output.length > 84) {
+              output = output.substr(0, 84);
+            }
+            screens[SCREEN_SPOTIFY] = output + ' '.repeat(84 - output.length);
+            spotifyLoggedIn = true;
+            updateContextMenu();
+
+          }, function(err) {
+            console.log('Something went wrong!', err);
+            let output = 'Spotify not connected.';
+            screens[SCREEN_SPOTIFY] = output + ' '.repeat(84 - output.length);
+            spotifyApi.refreshAccessToken().then(
+              function(data) {
+                console.log('The access token has been refreshed!');
+                spotifyApi.setAccessToken(data.body['access_token']);
+                spotifyLoggedIn = true;
+                updateContextMenu();
+              },
+              function(err) {
+                console.log('Could not refresh access token', err);
+                spotifyLoggedIn = false;
+                updateContextMenu();
+                if (!spotifyClosedWindowManually) {
+                  spotifyCreateAuthWin();
+                }
+              }
+            )
+          });
+        }
+        await wait(KEYBOARD_UPDATE_TIME);
     }
 }
 startSpotifyMonitor();
+
+
+function updateContextMenu() {
+  if (!app.isReady()) {
+    return;
+  }
+
+  if (lastLoggedIn == spotifyLoggedIn) {
+    return;
+  }
+  lastLoggedIn = spotifyLoggedIn;
+  let contextTemplate = [];
+  if (spotifyLoggedIn) {
+    contextTemplate.push({ label: 'Log out of Spotify', click: spotifyLogOut });
+  } else {
+    contextTemplate.push({ label: 'Log in to Spotify', click: spotifyCreateAuthWin });
+  }
+  contextTemplate.push({ label: 'Quit', click: () => { app.quit(); } });
+  tray.setContextMenu(Menu.buildFromTemplate(contextTemplate));
+}
+
+function createTray () {
+  tray = new Tray('./icon16.png')
+  tray.setToolTip('QMK HID Display');
+  updateContextMenu();
+}
+
+app.on('window-all-closed', () => {
+  // keep running.
+  // the tray doesn't count as a window, so
+  // this will keep the app running when we only have the tray
+})
+
+app.whenReady().then(createTray)
 
 // Update the data on the keyboard with the current info screen every second
 setInterval(updateKeyboardScreen, KEYBOARD_UPDATE_TIME);

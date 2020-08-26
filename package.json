@@ -11,7 +11,7 @@
   "dependencies": {
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
-    "express": "^4.17.1",
+    "electron": "^10.0.0",
     "microstats": "0.1.2",
     "nconf": "^0.10.0",
     "node-hid": "0.7.8",
@@ -19,5 +19,8 @@
     "querystring": "^0.2.0",
     "request": "^2.88.0",
     "spotify-web-api-node": "^4.0.0"
+  },
+  "devDependencies": {
+    "electron-rebuild": "^2.0.0"
   }
 }
