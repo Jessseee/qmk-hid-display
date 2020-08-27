@@ -1,7 +1,6 @@
 'use strict';
 
 const hid = require('node-hid');
-const perfmon = require('perfmon');
 const request = require('request');
 const nconf = require('nconf');
 const fs = require('fs');
