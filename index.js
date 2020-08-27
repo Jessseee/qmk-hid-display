@@ -2,10 +2,9 @@
 
 const hid = require('node-hid');
 const nconf = require('nconf');
-const request = require('request');
 const fs = require('fs');
 const crypto = require('crypto');
-const { app, BrowserWindow, Menu, Tray, session } = require('electron')
+const { app, BrowserWindow, Menu, Tray, session } = require('electron');
 
 // config
 // get a secret or create one. hacky but whatever 
@@ -59,78 +58,6 @@ function wait(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   })
-}
-
-
-async function startWeatherMonitor() {
-  // Regex's for reading out the weather info from the yahoo page
-  const tempRegex = /"temperature":({[^}]+})/;
-  const condRegex = /"conditionDescription":"([^"]+)"/;
-  const rainRegex = /"precipitationProbability":([^,]+),/;
-
-  function getWeather() {
-    return new Promise((resolve) => {
-      request(`https://www.yahoo.com/news/weather/united-states/seattle/seattle-2490383`, (err, res, body) => {
-        const weather = {};
-        const temp = tempRegex.exec(body);
-        if (temp && temp.length > 1) {
-          weather.temp = JSON.parse(temp[1]);
-        }
-
-        const cond = condRegex.exec(body);
-        if (cond && cond.length > 1) {
-          weather.desc = cond[1];
-        }
-
-        const rain = rainRegex.exec(body);
-        if (rain && rain.length > 1) {
-          weather.rain = rain[1];
-        }
-        resolve(weather);
-      });
-    });
-  }
-
-  // Used for scrolling long weather descriptions
-  let lastWeather = null;
-  let lastWeatherDescIndex = 0;
-
-  // Just keep updating the data forever
-  while (true) {
-    // Get the current weather for Seattle
-    const weather = await getWeather();
-    if (weather && weather.temp && weather.desc && weather.rain) {
-      let description = weather.desc;
-
-      // If we are trying to show the same weather description more than once, and it is longer than 9
-      // Which is all that will fit in our space, lets scroll it.
-      if (lastWeather && weather.desc == lastWeather.desc && weather.desc.length > 9) {
-        // Move the string one character over
-        lastWeatherDescIndex++;
-        description = description.slice(lastWeatherDescIndex, lastWeatherDescIndex + 9);
-        if (lastWeatherDescIndex > weather.desc.length - 9) {
-          // Restart back at the beginning
-          lastWeatherDescIndex = -1; // minus one since we increment before we show
-        }
-      } else {
-        lastWeatherDescIndex = 0;
-      }
-      lastWeather = weather;
-
-      // Create the new screen
-      const screen =
-        `desc: ${description}${' '.repeat(Math.max(0, 9 - ('' + description).length))} |  ${title(0, 2)} ` +
-        `temp: ${weather.temp.now}${' '.repeat(Math.max(0, 9 - ('' + weather.temp.now).length))} |  ${title(1, 2)} ` +
-        `high: ${weather.temp.high}${' '.repeat(Math.max(0, 9 - ('' + weather.temp.high).length))} |  ${title(2, 2)} ` +
-        `rain: ${weather.rain}%${' '.repeat(Math.max(0, 8 - ('' + weather.rain).length))} |  ${title(3, 2)} `;
-
-      // Set this to be the latest weather info
-      screens[SCREEN_WEATHER] = screen;
-    }
-
-    // Pause a bit before requesting more info
-    await wait(KEYBOARD_UPDATE_TIME);
-  }
 }
 
 function title(i, titleIndex) {
@@ -217,37 +144,15 @@ function updateKeyboardScreen() {
   }
 }
 
-// Start the monitors that collect the info to display
-startWeatherMonitor();
-
-// spotify stuff
+const SpotifyScreen = require('./screens/spotify.js');
+const PerfScreen = require('./screens/perf.js');
+const StocksScreen = require('./screens/stocks.js');
+const WeatherScreen = require('./screens/weather.js');
 let tray = null;
 let spotifyPage = null;
 let perfPage = null;
 let stocksPage = null;
-
-async function updateSpotifyScreen() {
-  while (true) {
-    let parsedScreen = '';
-    if (spotifyPage) {
-      for (const rawLine of spotifyPage.screen) {
-        let line = rawLine;
-        if (line.length < 21) {
-          line = line + ' '.repeat(21 - line.length);
-        } else {
-          line = line.substr(0, 21);
-        }
-        parsedScreen += line;
-      }
-    }
-    if (parsedScreen.length < 84) {
-      parsedScreen += ' '.repeat(84 - parsedScreen);
-    }
-    screens[SCREEN_SPOTIFY] = parsedScreen;
-    await wait(KEYBOARD_UPDATE_TIME);
-  }
-}
-updateSpotifyScreen();
+let weatherPage = null;
 
 function updateContextMenu() {
   if (!app.isReady()) {
@@ -261,13 +166,12 @@ function updateContextMenu() {
   tray.setContextMenu(Menu.buildFromTemplate(contextTemplate));
 }
 
-const SpotifyScreen = require('./screens/spotify.js');
-const PerfScreen = require('./screens/perf.js');
-const StocksScreen = require('./screens/stocks.js');
 function createTray () {
   tray = new Tray('./icon16.png')
   tray.setToolTip('QMK HID Display');
   updateContextMenu();
+  weatherPage = new WeatherScreen(tray, nconf, session, updateContextMenu,
+    () => { if (weatherPage) screens[SCREEN_WEATHER] = weatherPage.parsedScreen() });
   stocksPage = new StocksScreen(tray, nconf, session, updateContextMenu,
     () => { if (stocksPage) screens[SCREEN_STOCK] = stocksPage.parsedScreen() });
   perfPage = new PerfScreen(tray, nconf, session, updateContextMenu,
