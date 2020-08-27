@@ -1,4 +1,6 @@
 // Spotify page
+'use strict';
+
 const Screen = require('./screen.js');
 const SpotifyWebApi = require('spotify-web-api-node');
 
@@ -49,14 +51,7 @@ class SpotifyScreen extends Screen {
               const songName = data.body.item.name;
 
               // Progress bar
-              const progress = data.body.progress_ms / data.body.item.duration_ms;
-              const progressQuantized = Math.floor(19 * progress);
-              const progressRemainder = progress * 19 - progressQuantized;
-              const progressRemainderQuantized = Math.floor(progressRemainder * 6);
-
-              let progressBar = '\u009b'.repeat(progressQuantized) + String.fromCharCode(149 + progressRemainderQuantized);
-              progressBar += ' '.repeat(19 - Math.min(progressBar.length, 19));
-              progressBar = '\u009c' + progressBar + '\u009d';
+              const progressBar = this.screenBar(data.body.progress_ms / data.body.item.duration_ms);
 
               // Time
               let curS = Math.floor((data.body.progress_ms / 1000) % 60);
