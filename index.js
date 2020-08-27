@@ -149,18 +149,18 @@ const PerfScreen = require('./screens/perf.js');
 const StocksScreen = require('./screens/stocks.js');
 const WeatherScreen = require('./screens/weather.js');
 let tray = null;
-let spotifyPage = null;
-let perfPage = null;
-let stocksPage = null;
-let weatherPage = null;
+let spotifyScreen = null;
+let perfScreen = null;
+let stocksScreen = null;
+let weatherScreen = null;
 
 function updateContextMenu() {
   if (!app.isReady()) {
     return;
   }
   let contextTemplate = [];
-  if (spotifyPage) {
-    contextTemplate.push(...spotifyPage.trayMenu);
+  if (spotifyScreen) {
+    contextTemplate.push(...spotifyScreen.trayMenu);
   }
   contextTemplate.push({ label: 'Quit', click: () => { app.quit(); } });
   tray.setContextMenu(Menu.buildFromTemplate(contextTemplate));
@@ -170,14 +170,14 @@ function createTray () {
   tray = new Tray('./icon16.png')
   tray.setToolTip('QMK HID Display');
   updateContextMenu();
-  weatherPage = new WeatherScreen(tray, nconf, session, updateContextMenu,
-    () => { if (weatherPage) screens[SCREEN_WEATHER] = weatherPage.parsedScreen() });
-  stocksPage = new StocksScreen(tray, nconf, session, updateContextMenu,
-    () => { if (stocksPage) screens[SCREEN_STOCK] = stocksPage.parsedScreen() });
-  perfPage = new PerfScreen(tray, nconf, session, updateContextMenu,
-    () => { if (perfPage) screens[SCREEN_PERF] = perfPage.parsedScreen() });
-  spotifyPage = new SpotifyScreen(tray, nconf, session, updateContextMenu,
-    () => { if (spotifyPage) screens[SCREEN_SPOTIFY] = spotifyPage.parsedScreen() });
+  weatherScreen = new WeatherScreen(tray, nconf, session, updateContextMenu,
+    () => { if (weatherScreen) screens[SCREEN_WEATHER] = weatherScreen.parsedScreen() });
+  stocksScreen = new StocksScreen(tray, nconf, session, updateContextMenu,
+    () => { if (stocksScreen) screens[SCREEN_STOCK] = stocksScreen.parsedScreen() });
+  perfScreen = new PerfScreen(tray, nconf, session, updateContextMenu,
+    () => { if (perfScreen) screens[SCREEN_PERF] = perfScreen.parsedScreen() });
+  spotifyScreen = new SpotifyScreen(tray, nconf, session, updateContextMenu,
+    () => { if (spotifyScreen) screens[SCREEN_SPOTIFY] = spotifyScreen.parsedScreen() });
 }
 
 app.on('window-all-closed', () => {
