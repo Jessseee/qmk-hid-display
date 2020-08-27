@@ -2,7 +2,7 @@
 'use strict';
 
 class Screen {
-  constructor(tray, nconf, session, updateScreenCallback, updateTrayMenuCallback, displayHeight = 4, displayWidth = 21) {
+  constructor(tray, nconf, session, updateTrayMenuCallback, updateScreenCallback, displayHeight = 4, displayWidth = 21) {
     this.tray = tray;
     this.nconf = nconf;
     this.session = session;
@@ -24,8 +24,8 @@ class Screen {
   parsedScreen() {
     let parsedScreen = '';
     let clampPad = (str, size) => {
-      if (str.size < size) {
-        return ' '.repeat(size - str.length);
+      if (str.length < size) {
+        return str + ' '.repeat(size - str.length);
       } else {
         return str.substr(0, size);
       }
@@ -35,13 +35,17 @@ class Screen {
       // todo: marquee
       parsedScreen += clampPad(line, this.displayWidth);
     }
+
     parsedScreen = clampPad(parsedScreen, this.displayHeight * this.displayWidth);
     return parsedScreen;
   }
 
-  screenBar(progress, label = '', endPoints = true) {
+  screenBar(progress, label = '', showNum = false, endPoints = true) {
     let out = label;
     let actualBarSize = this.displayWidth - label.length;
+    if (showNum) {
+      actualBarSize -= 2;
+    }
     if (endPoints) {
       actualBarSize -= 2;
     }
@@ -51,9 +55,18 @@ class Screen {
     // 6 different characters to show sub-char progress
     const progressRemainderQuantized = Math.floor(progressRemainder * 6);
     let progressBar = '\u009b'.repeat(progressQuantized) + String.fromCharCode(149 + progressRemainderQuantized);
-    progressBar += ' '.repeat(actualBarSize - Math.min(progressBar.length, 19));
+    progressBar += ' '.repeat(actualBarSize - Math.min(progressBar.length, actualBarSize));
     if (endPoints) {
       progressBar = '\u009c' + progressBar + '\u009d';
+    }
+    if (showNum) {
+      let tens = Math.floor(progress * 10);
+      let ones = Math.floor(progress * 100) % 10;
+      if (tens == 0) {
+        tens = ' ';
+      }
+      progressBar += tens;
+      progressBar += ones;
     }
     out += progressBar;
     return out;

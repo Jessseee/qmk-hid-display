@@ -62,46 +62,6 @@ function wait(ms) {
   })
 }
 
-function startPerfMonitor() {
-  // Set the perf counter that we need for the performance screen
-  const counters = new Map();
-  counters.set('cpu', '\\Processor(_Total)\\% Processor Time');
-  counters.set('mem', '\\Memory\\% Committed Bytes In Use');
-  counters.set('dsk', '\\PhysicalDisk(_Total)\\% Disk Time');
-
-  function getStat(name, data) {
-    // Convert the counter data into a value 1-10 that we can use to generate a bar graph
-    const value = Math.floor(data.counters[counters.get(name)] / 100.0 * 10);
-    return Math.min(10, Math.max(1, value));
-  }
-
-  perfmon([...counters.values()], function (err, data) {
-    if (!data || Object.getOwnPropertyNames(data.counters).length < counters.size) {
-      // Sometimes perfmon doesn't get all the counters working, no idea why.
-      // Let's just restart to try it again
-      console.log('Could not find all perf counters, restarting perfmon...');
-      perfmon.stop();
-      perfmon.start();
-      return;
-    }
-
-    // Get the value for each stat
-    const cpu = getStat('cpu', data);
-    const mem = getStat('mem', data);
-    const dsk = getStat('dsk', data);
-
-    // Create a screen with the data
-    const screen =
-      `cpu: ${'\u0008'.repeat(cpu)}${' '.repeat(Math.max(0, 10 - cpu))} |  ${title(0, 0)} ` +
-      `mem: ${'\u0008'.repeat(mem)}${' '.repeat(Math.max(0, 10 - mem))} |  ${title(1, 0)} ` +
-      `dsk: ${'\u0008'.repeat(dsk)}${' '.repeat(Math.max(0, 10 - dsk))} |  ${title(2, 0)} ` +
-      `${' '.repeat(15)} |  ${title(3, 0)} `;
-
-    // Set this to be the latest performance info
-    screens[SCREEN_PERF] = screen;
-  });
-}
-
 async function startStockMonitor() {
   // Set the stocks that we want to show
   const stocks = new Map();
@@ -311,13 +271,13 @@ function updateKeyboardScreen() {
 }
 
 // Start the monitors that collect the info to display
-startPerfMonitor();
 startStockMonitor();
 startWeatherMonitor();
 
 // spotify stuff
 let tray = null;
 let spotifyPage = null;
+let perfPage = null;
 
 async function updateSpotifyScreen() {
   while (true) {
@@ -355,12 +315,15 @@ function updateContextMenu() {
 }
 
 const SpotifyScreen = require('./screens/spotify.js');
+const PerfScreen = require('./screens/perf.js');
 function createTray () {
   tray = new Tray('./icon16.png')
   tray.setToolTip('QMK HID Display');
   updateContextMenu();
+  perfPage = new PerfScreen(tray, nconf, session, updateContextMenu,
+    () => { if (perfPage) screens[SCREEN_PERF] = perfPage.parsedScreen() });
   spotifyPage = new SpotifyScreen(tray, nconf, session, updateContextMenu,
-    () => { screens[SCREEN_SPOTIFY] = spotifyPage.parsedScreen() });
+    () => { if (spotifyPage) screens[SCREEN_SPOTIFY] = spotifyPage.parsedScreen() });
 }
 
 app.on('window-all-closed', () => {
