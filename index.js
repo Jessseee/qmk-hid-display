@@ -1,8 +1,8 @@
 'use strict';
 
 const hid = require('node-hid');
-const request = require('request');
 const nconf = require('nconf');
+const request = require('request');
 const fs = require('fs');
 const crypto = require('crypto');
 const { app, BrowserWindow, Menu, Tray, session } = require('electron')
@@ -61,58 +61,6 @@ function wait(ms) {
   })
 }
 
-async function startStockMonitor() {
-  // Set the stocks that we want to show
-  const stocks = new Map();
-  stocks.set('MSFT', 0);
-  stocks.set('AAPL', 0);
-  stocks.set('GOOG', 0);
-  stocks.set('FB', 0);
-
-  // The regex used to grab the price from the yahoo stocks page
-  const priceRegex = /"currentPrice":({[^}]+})/;
-
-  function getStocks() {
-    const promises = [];
-    for (const [key, value] of stocks) {
-      promises.push(new Promise((resolve) => {
-        // Get the stock price page for the current stock
-        request(`https://finance.yahoo.com/quote/${key}/`, (err, res, body) => {
-          // Parse out the price and update the map
-          const result = priceRegex.exec(body);
-          if (result && result.length > 1) {
-            let price = JSON.parse(result[1]).raw;
-            price = price.toFixed(2);
-            stocks.set(key, price);
-          }
-          resolve();
-        });
-      }));
-    }
-
-    // Wait for all the stocks to be updated
-    return Promise.all(promises);
-  };
-
-  // Just keep updating the data forever
-  while (true) {
-    // Get the current stock prices
-    await getStocks();
-
-    // Create a screen using the stock data
-    const lines = [];
-    for (const [key, value] of stocks) {
-      const line = `${key.padEnd(5)}: $${value}`;
-      lines.push(`${line}${' '.repeat(16 - line.length)}|  ${title(lines.length, 1)} `);
-    }
-
-    // Set this to be the latest stock info
-    screens[SCREEN_STOCK] = lines.join('');
-
-    // Pause a bit before requesting more info
-    await wait(KEYBOARD_UPDATE_TIME);
-  }
-}
 
 async function startWeatherMonitor() {
   // Regex's for reading out the weather info from the yahoo page
@@ -270,13 +218,13 @@ function updateKeyboardScreen() {
 }
 
 // Start the monitors that collect the info to display
-startStockMonitor();
 startWeatherMonitor();
 
 // spotify stuff
 let tray = null;
 let spotifyPage = null;
 let perfPage = null;
+let stocksPage = null;
 
 async function updateSpotifyScreen() {
   while (true) {
@@ -315,10 +263,13 @@ function updateContextMenu() {
 
 const SpotifyScreen = require('./screens/spotify.js');
 const PerfScreen = require('./screens/perf.js');
+const StocksScreen = require('./screens/stocks.js');
 function createTray () {
   tray = new Tray('./icon16.png')
   tray.setToolTip('QMK HID Display');
   updateContextMenu();
+  stocksPage = new StocksScreen(tray, nconf, session, updateContextMenu,
+    () => { if (stocksPage) screens[SCREEN_STOCK] = stocksPage.parsedScreen() });
   perfPage = new PerfScreen(tray, nconf, session, updateContextMenu,
     () => { if (perfPage) screens[SCREEN_PERF] = perfPage.parsedScreen() });
   spotifyPage = new SpotifyScreen(tray, nconf, session, updateContextMenu,
