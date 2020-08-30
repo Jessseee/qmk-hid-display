@@ -112,6 +112,21 @@ class Screen {
     return out;
   }
 
+  screenScroll(str, speed = 1000, label = '') {
+    const ms = Date.now();
+    const scrollSpace = this.displayWidth - label.length;
+    if (scrollSpace < 1 || str.length + label.length < scrollSpace) {
+      // cannot scroll
+      return label + str;
+    }
+    // pause on ends
+    const endPauseTicks = 3;
+    const scrollMod = str.length - scrollSpace;
+    let offset = Math.floor(ms/1000) % (scrollMod + 2 * endPauseTicks);
+    offset = Math.min(Math.max(offset - endPauseTicks, 0), scrollMod);
+    return label + str.substr(offset, scrollSpace);
+  }
+
   // Helper wait function
   wait(ms) {
     return new Promise((resolve) => {

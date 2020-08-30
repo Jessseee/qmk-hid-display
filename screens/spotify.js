@@ -80,7 +80,12 @@ class SpotifyScreen extends LoopingScreen {
         const playingStatus = this.state == states.playing ? '\u000e' : ' ';
         const durationLine = playingStatus + ' '.repeat(this.displayWidth - 1 - duration.length) + duration
 
-        this.screen = [songName, artistNames, progressBar, durationLine];
+        this.screen = [
+          this.screenScroll(songName),
+          this.screenScroll(artistNames),
+          progressBar,
+          durationLine
+        ];
       } else if (this.state == states.notPlaying) {
         this.screen = ['Spotify: Connected']
       } else {

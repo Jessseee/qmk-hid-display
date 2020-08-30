@@ -14,9 +14,6 @@ class WeatherScreen extends LoopingScreen {
     this.temp = '';
     this.high = '';
     this.rain = '';
-
-    this.lastWeather = null;
-    this.lastWeatherDescIndex = 0;
   }
 
   getWeather() {
@@ -48,7 +45,7 @@ class WeatherScreen extends LoopingScreen {
 
   updateScreen() {
     this.screen = [
-      'desc: ' + this.description,
+      this.screenScroll(this.description),
       'temp: ' + this.temp,
       'high: ' + this.high,
       'rain: ' + this.rain
@@ -60,28 +57,11 @@ class WeatherScreen extends LoopingScreen {
     // Get the current weather for Seattle
     this.getWeather().then((weather) => {
       if (weather && weather.temp && weather.desc && weather.rain) {
-        let description = weather.desc;
-
-        // If we are trying to show the same weather description more than once, and it is longer than 9
-        // Which is all that will fit in our space, lets scroll it.
-        if (this.lastWeather && weather.desc == this.lastWeather.desc && weather.desc.length > 9) {
-          // Move the string one character over
-          this.lastWeatherDescIndex++;
-          description = description.slice(this.lastWeatherDescIndex, this.lastWeatherDescIndex + 9);
-          if (this.lastWeatherDescIndex > weather.desc.length - 9) {
-            // Restart back at the beginning
-            this.lastWeatherDescIndex = -1; // minus one since we increment before we show
-          }
-        } else {
-          this.lastWeatherDescIndex = 0;
-        }
-        this.lastWeather = weather;
-
         // update info
-        this.description = description;
-        this.temp = weather.temp.now;
-        this.high = weather.temp.high;
-        this.rain = weather.rain;
+        this.description = weather.desc;
+        this.temp = weather.temp.now + '\u0009';
+        this.high = weather.temp.high + '\u0009';
+        this.rain = weather.rain + '%';
 
         // Create the new screen
         this.updateScreen();
