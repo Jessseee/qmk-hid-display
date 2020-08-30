@@ -2,7 +2,7 @@
 // logic from https://github.com/BlankSourceCode/qmk-hid-display
 'use strict';
 
-const Screen = require('./screen.js');
+const { Screen } = require('./screen.js');
 const perfmon = require('perfmon');
 
 class PerfScreen extends Screen {

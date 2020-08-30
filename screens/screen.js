@@ -23,6 +23,7 @@ class Screen {
     this.lastTrayMenu = [];
 
     this.init();
+    this.screen = [this.name];
   }
 
   init() {
@@ -119,4 +120,40 @@ class Screen {
   }
 }
 
-module.exports = Screen;
+class LoopingScreen extends Screen {
+  init() {
+    super.init();
+    this.activeLoop = null;
+    this.loopDelay = 1000;
+  }
+
+  activate() {
+    // If we have a running loop, then wait for it to finish and then start
+    // a new one
+    if (this.activeLoop && !this.active) {
+      this.activeLoop.then(() => {
+        super.activate();
+        this.activeLoop = this.loop();
+      });
+    } else {
+      super.activate();
+      this.runningMonitor = this.loop();
+    }
+  }
+
+  update() {
+    this.requestUpdateScreen();
+  }
+
+  async loop() {
+    while (true) {
+      if (!this.active) {
+        break;
+      }
+      this.update();
+      await this.wait(this.loopDelay);
+    }
+  }
+}
+
+module.exports = {Screen: Screen, LoopingScreen: LoopingScreen};

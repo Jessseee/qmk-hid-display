@@ -2,10 +2,10 @@
 // logic from https://github.com/BlankSourceCode/qmk-hid-display
 'use strict';
 
-const Screen = require('./screen.js');
+const { LoopingScreen } = require('./screen.js');
 const request = require('request');
 
-class StocksScreen extends Screen {
+class StocksScreen extends LoopingScreen {
   init() {
     super.init();
     this.name = 'Stocks';
@@ -19,31 +19,9 @@ class StocksScreen extends Screen {
     ]);
   }
 
-  activate() {
-    // If we have a running loop, then wait for it to finish and then start
-    // a new one
-    if (this.runningMonitor && !this.active) {
-      this.runningMonitor.then(() => {
-        super.activate();
-        this.runningMonitor = this.stockMonitor();
-      });
-    } else {
-      super.activate();
-      this.runningMonitor = this.stockMonitor();
-    }
-  }
-
-  async stockMonitor() {
-    while (true) {
-      // Get the current stock prices
-      // (don't await since we're ok with this being slightly out of date)
-      // TODO: prevent multiple requests of the same stock
-      this.updateStockPrices();
-      this.updateScreen();
-
-      // Pause a bit before requesting more info
-      await this.wait(1000);
-    }
+  update() {
+    this.updateStockPrices();
+    this.updateScreen();
   }
 
   updateStockPrices() {
