@@ -25,13 +25,7 @@ class StocksScreen extends Screen {
       // (don't await since we're ok with this being slightly out of date)
       // TODO: prevent multiple requests of the same stock
       this.updateStockPrices();
-
-      // Create a screen using the stock data
-      this.screen = [];
-      for (const [key, value] of this.stocks) {
-        this.screen.push(key.padEnd(5) + ': $' + value);
-      }
-      this.updateScreenCallback();
+      this.updateScreen();
 
       // Pause a bit before requesting more info
       await this.wait(1000);
@@ -60,6 +54,15 @@ class StocksScreen extends Screen {
 
     // Wait for all the stocks to be updated
     return Promise.all(promises);
+  }
+
+  updateScreen() {
+    // Create a screen using the stock data
+    this.screen = [];
+    for (const [key, value] of this.stocks) {
+      this.screen.push(key.padEnd(5) + ': $' + value);
+    }
+    super.updateScreen();
   }
 }
 

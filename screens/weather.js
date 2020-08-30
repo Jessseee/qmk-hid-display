@@ -9,6 +9,11 @@ class WeatherScreen extends Screen {
   init() {
     super.init();
     this.startWeatherMonitor();
+
+    this.description = '';
+    this.temp = '';
+    this.high = '';
+    this.rain = '';
   }
 
   getWeather() {
@@ -38,6 +43,16 @@ class WeatherScreen extends Screen {
     });
   }
 
+  updateScreen() {
+    this.screen = [
+      'desc: ' + this.description,
+      'temp: ' + this.temp,
+      'high: ' + this.high,
+      'rain: ' + this.rain
+    ]
+    super.updateScreen();
+  }
+
   async startWeatherMonitor() {
     // Used for scrolling long weather descriptions
     let lastWeather = null;
@@ -65,14 +80,14 @@ class WeatherScreen extends Screen {
         }
         lastWeather = weather;
 
+        // update info
+        this.description = description;
+        this.temp = weather.temp.now;
+        this.high = weather.temp.high;
+        this.rain = weather.rain;
+
         // Create the new screen
-        this.screen = [
-          'desc: ' + description,
-          'temp: ' + weather.temp.now,
-          'high: ' + weather.temp.high,
-          'rain: ' + weather.rain
-        ]
-        this.updateScreenCallback()
+        this.updateScreen();
       }
 
       // Pause a bit before requesting more info

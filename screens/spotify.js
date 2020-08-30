@@ -4,13 +4,21 @@
 const Screen = require('./screen.js');
 const SpotifyWebApi = require('spotify-web-api-node');
 
+const states = {
+  loggedOut: 0,
+  notPlaying: 1,
+  playing: 2,
+  refreshing: 3
+};
+Object.freeze(states);
+
 class SpotifyScreen extends Screen {
   init() {
     super.init();
+    this.name = 'Spotify';
 
     this.authWin = null;
     this.authWinClosedManually = false;
-    this.loggedIn = false;
 
     //spotify api setup
     const spotifyClientId = this.nconf.get('spotifyClientId')
@@ -21,70 +29,86 @@ class SpotifyScreen extends Screen {
       clientSecret: spotifyClientSecret,
       redirectUri: this.spotifyCallbackUri
     });
+
+    // updated by the monitor
+    this.state = states.loggedOut;
+    this.songInfo = {};
+
     this.startSpotifyMonitor();
   }
 
   updateTrayMenu() {
-    if (this.loggedIn) {
-      this.trayMenu = [{ label: 'Log out of Spotify', click: this.logOut }];
-    } else {
+    if (this.state == states.loggedOut) {
       this.trayMenu = [{ label: 'Log in to Spotify', click: this.createAuthWin }];
+    } else {
+      this.trayMenu = [{ label: 'Log out of Spotify', click: this.logOut }];
     }
-    this.updateTrayMenuCallback();
+    super.updateTrayMenu();
+  }
+
+  updateScreen() {
+    if (this.state == states.loggedOut) {
+      this.screen = ['Spotify: Logged Out'];
+    } else if (this.state == states.notPlaying) {
+      this.screen = ['Spotify: Connected'];
+    } else if (this.state == states.playing) {
+      if (this.songInfo && this.songInfo.item) {
+        const songName = this.songInfo.item.name;
+        const progress = this.songInfo.progress_ms / this.songInfo.item.duration_ms;
+        const progressBar = this.screenBar(progress);
+
+        // Time
+        let curS = Math.floor((this.songInfo.progress_ms / 1000) % 60);
+        let curM = Math.floor((this.songInfo.progress_ms / 1000 - curS) / 60);
+        let totalS = Math.floor(this.songInfo.item.duration_ms / 1000) % 60;
+        let totalM = Math.floor((this.songInfo.item.duration_ms / 1000 - totalS) / 60);
+        if (curS < 10) {
+          curS = '0' + curS;
+        }
+        if (totalS < 10) {
+          totalS = '0' + totalS
+        }
+        const duration = curM + ':' + curS + '/' + totalM + ':' + totalS;
+        const durationLine = '\u000e' + ' '.repeat(this.displayWidth - 1 - duration.length) + duration
+
+        this.screen = [songName, '', progressBar, durationLine];
+      } else {
+        this.screen = ['Invalid song info'];
+      }
+    }
+
+    super.updateScreen();
   }
 
   async startSpotifyMonitor() {
-    console.log('starting spotify monitor')
+    this.log('starting spotify monitor')
     let refreshToken = this.nconf.get('refreshToken');
     this.spotifyApi.setRefreshToken(refreshToken);
     while (true) {
       if (this.spotifyApi.getRefreshToken() == '') {
-        this.screen = ['Spotify: logged out'];
-        this.loggedIn = false;
+        this.state = states.loggedOut;
         this.updateTrayMenu();
       } else {
         this.spotifyApi.getMyCurrentPlaybackState({})
           .then((data) => {
             // Output items
             if (data.body.item) {
-              // Song name
-              const songName = data.body.item.name;
-
-              // Progress bar
-              const progressBar = this.screenBar(data.body.progress_ms / data.body.item.duration_ms);
-
-              // Time
-              let curS = Math.floor((data.body.progress_ms / 1000) % 60);
-              let curM = Math.floor((data.body.progress_ms / 1000 - curS) / 60);
-              let totalS = Math.floor(data.body.item.duration_ms / 1000) % 60;
-              let totalM = Math.floor((data.body.item.duration_ms / 1000 - totalS) / 60);
-              if (curS < 10) {
-                curS = '0' + curS;
-              }
-              if (totalS < 10) {
-                totalS = '0' + totalS
-              }
-
-              const duration = curM + ':' + curS + '/' + totalM + ':' + totalS;
-              const durationLine = '\u000e' + ' '.repeat(20 - duration.length) + duration;
-              this.screen = [songName, '', progressBar, durationLine];
+              this.songInfo = data.body;
             }
-            this.loggedIn = true;
+            this.state = states.playing;
             this.updateTrayMenu();
 
           }, (err) => {
-            console.log('Something went wrong!', err);
-            this.screen = ['Spotify not connected.'];
+            this.states = states.refreshing;
             this.spotifyApi.refreshAccessToken().then(
               (data) => {
-                console.log('The access token has been refreshed!');
+                this.log('The access token has been refreshed!');
                 this.spotifyApi.setAccessToken(data.body['access_token']);
-                this.loggedIn = true;
                 this.updateTrayMenu();
               },
               (err) => {
-                console.log('Could not refresh access token', err);
-                this.loggedIn = false;
+                this.log('Could not refresh access token', err);
+                this.state = state.loggedOut;
                 this.updateTrayMenu();
                 if (!this.authWinClosedManually) {
                   this.createAuthWin();
@@ -93,7 +117,7 @@ class SpotifyScreen extends Screen {
             )
           });
       }
-      this.updateScreenCallback();
+      this.updateScreen();
       await this.wait(1000);
     }
   }
@@ -133,13 +157,13 @@ class SpotifyScreen extends Screen {
           this.spotifyApi.setRefreshToken(refreshToken);
           this.nconf.set('refreshToken', refreshToken);
           this.nconf.save('user');
-          console.log('logged in');
-          this.loggedIn = true;
+          this.log('logged in');
+          this.state = true;
           this.updateTrayMenu();
         },
         (err) => {
-          console.log('Something went wrong in auth!', err);
-          this.loggedIn = false;
+          this.log('Something went wrong in auth!', err);
+          this.state = states.refreshing;
           this.updateTrayMenu();
         }
       )
@@ -170,7 +194,7 @@ class SpotifyScreen extends Screen {
     this.spotifyApi.setAccessToken('');
     this.nconf.set('refreshToken', '');
     this.nconf.save('user');
-    this.loggedIn = false;
+    this.states = state.loggedOut;
     this.closedWindowManually = true;
     this.updateTrayMenu();
   }

@@ -1,8 +1,11 @@
 // base screen class
 'use strict';
 
+const { isEqual } = require('lodash');
+
 class Screen {
   constructor(tray, nconf, session, updateTrayMenuCallback, updateScreenCallback, displayHeight = 4, displayWidth = 21) {
+    this.name = 'Screen';
     this.tray = tray;
     this.nconf = nconf;
     this.session = session;
@@ -15,10 +18,27 @@ class Screen {
     this.screen = [];
     this.trayMenu = [];
 
+    this.lastScreen = [];
+    this.lastTrayMenu = [];
+
     this.init();
   }
 
   init() {
+  }
+
+  updateTrayMenu() {
+    if (!isEqual(this.trayMenu, this.lastTrayMenu)) {
+      this.lastTrayMenu = this.trayMenu;
+      this.updateTrayMenuCallback();
+    }
+  }
+
+  updateScreen() {
+    if (!isEqual(this.screen, this.lastScreen)) {
+      this.lastScreen = this.screen;
+      this.updateScreenCallback();
+    }
   }
 
   parsedScreen() {
@@ -38,6 +58,10 @@ class Screen {
 
     parsedScreen = clampPad(parsedScreen, this.displayHeight * this.displayWidth);
     return parsedScreen;
+  }
+
+  log(output) {
+    console.log(`[${this.name}] ${output}`);
   }
 
   screenBar(progress, label = '', showNum = false, endPoints = true) {

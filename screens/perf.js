@@ -9,6 +9,10 @@ class PerfScreen extends Screen {
   init() {
     super.init();
     this.startPerfMonitor();
+
+    this.cpu = 0;
+    this.mem = 0;
+    this.dsk = 0;
   }
 
   startPerfMonitor() {
@@ -34,17 +38,20 @@ class PerfScreen extends Screen {
       }
 
       // Get the value for each stat
-      const cpu = getStat('cpu', data);
-      const mem = getStat('mem', data);
-      const dsk = getStat('dsk', data);
+      this.cpu = getStat('cpu', data);
+      this.mem = getStat('mem', data);
+      this.dsk = getStat('dsk', data);;
 
-      // Create a screen with the data
-      this.screen = [
-        this.screenBar(cpu, 'cpu'),
-        this.screenBar(mem, 'mem'),
-        this.screenBar(dsk, 'dsk')];
-      this.updateScreenCallback();
+      this.updateScreen();
     });
+  }
+
+  updateScreen() {
+    this.screen = [
+      this.screenBar(this.cpu, 'cpu'),
+      this.screenBar(this.mem, 'mem'),
+      this.screenBar(this.dsk, 'dsk')];
+    super.updateScreen();
   }
 }
 

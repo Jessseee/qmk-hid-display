@@ -56,6 +56,7 @@ class ScreenManager {
 
   setActiveScreen(index) {
     this.activeScreen = Math.min(Math.max(index, 0), this.screens.length);
+    this.updateScreenCallback();
   }
 
   getActiveScreen() {
