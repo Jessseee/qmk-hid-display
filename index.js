@@ -54,14 +54,6 @@ function wait(ms) {
   })
 }
 
-function title(i, titleIndex) {
-  // Return the character that indicates the title part from the font data
-  if (i === 3) {
-    return '\u00DE';
-  }
-  return String.fromCharCode((0x9A - titleIndex) + i * 32);
-}
-
 async function sendToKeyboard(screen) {
   // If we are already buffering a screen to the keyboard just quit early.
   // Or if there is no update from what we sent last time.
