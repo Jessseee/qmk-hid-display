@@ -47,7 +47,8 @@ class ScreenManager {
   }
 
   getContextMenus() {
-    let output = []
+    let output = [];
+    output.push({ label: 'Current: ' + this.getActiveScreen().name });
     for (const screen of this.screens) {
       output.push(...screen.trayMenu);
     }
@@ -64,6 +65,7 @@ class ScreenManager {
     this.screens[lastActive].deactivate();
     this.screens[this.activeScreen].activate();
     this.updateScreenCallback();
+    this.updateTrayMenuCallback();
   }
 
   getActiveScreen() {
