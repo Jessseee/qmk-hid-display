@@ -26,8 +26,6 @@ class StocksScreen extends Screen {
       this.runningMonitor.then(() => {
         super.activate();
         this.runningMonitor = this.stockMonitor();
-        this.updateStockPrices();
-        this.updateScreen();
       });
     } else {
       super.activate();
