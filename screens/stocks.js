@@ -8,6 +8,7 @@ const request = require('request');
 class StocksScreen extends Screen {
   init() {
     super.init();
+    this.name = 'Stocks';
 
     // Set the stocks that we want to show
     // TODO: nconf
@@ -16,10 +17,25 @@ class StocksScreen extends Screen {
       ['AMZN', 0],
       ['AAPL', 0]
     ]);
-    this.startStockMonitor();
   }
 
-  async startStockMonitor() {
+  activate() {
+    // If we have a running loop, then wait for it to finish and then start
+    // a new one
+    if (this.runningMonitor && !this.active) {
+      this.runningMonitor.then(() => {
+        super.activate();
+        this.runningMonitor = this.stockMonitor();
+        this.updateStockPrices();
+        this.updateScreen();
+      });
+    } else {
+      super.activate();
+      this.runningMonitor = this.stockMonitor();
+    }
+  }
+
+  async stockMonitor() {
     while (true) {
       // Get the current stock prices
       // (don't await since we're ok with this being slightly out of date)

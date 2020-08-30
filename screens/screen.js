@@ -11,6 +11,7 @@ class Screen {
     this.session = session;
     this.updateTrayMenuCallback = updateTrayMenuCallback;
     this.updateScreenCallback = updateScreenCallback;
+    this.active = false;
 
     this.displayHeight = displayHeight;
     this.displayWidth = displayWidth;
@@ -27,10 +28,24 @@ class Screen {
   init() {
   }
 
+  activate() {
+    this.active = true;
+  }
+
+  deactivate() {
+    this.active = false;
+  }
+
   updateTrayMenu() {
     if (!isEqual(this.trayMenu, this.lastTrayMenu)) {
       this.lastTrayMenu = this.trayMenu;
       this.updateTrayMenuCallback();
+    }
+  }
+
+  requestUpdateScreen() {
+    if (this.active) {
+      this.updateScreen();
     }
   }
 

@@ -8,7 +8,8 @@ const states = {
   loggedOut: 0,
   notPlaying: 1,
   playing: 2,
-  refreshing: 3
+  refreshing: 3,
+  booting: 4
 };
 Object.freeze(states);
 
@@ -33,8 +34,21 @@ class SpotifyScreen extends Screen {
     // updated by the monitor
     this.state = states.loggedOut;
     this.songInfo = {};
+  }
 
-    this.startSpotifyMonitor();
+  activate() {
+    // If we have a running loop, then wait for it to finish and then start
+    // a new one
+    if (this.runningMonitor && !this.active) {
+      this.runningMonitor.then(() => {
+        super.activate();
+        this.runningMonitor = this.spotifyMonitor();
+      });
+    } else {
+      super.activate();
+      this.state = states.booting;
+      this.runningMonitor = this.spotifyMonitor();
+    }
   }
 
   updateTrayMenu() {
@@ -75,16 +89,22 @@ class SpotifyScreen extends Screen {
       } else {
         this.screen = ['Invalid song info'];
       }
+    } else if (this.state == states.booting) {
+      if (this.screen.length == 0) {
+        this.screen = ['Spotify'];
+      }
     }
 
     super.updateScreen();
   }
 
-  async startSpotifyMonitor() {
-    this.log('starting spotify monitor')
+  async spotifyMonitor() {
     let refreshToken = this.nconf.get('refreshToken');
     this.spotifyApi.setRefreshToken(refreshToken);
     while (true) {
+      if (!this.active) {
+        break;
+      }
       if (this.spotifyApi.getRefreshToken() == '') {
         this.state = states.loggedOut;
         this.updateTrayMenu();
@@ -97,8 +117,8 @@ class SpotifyScreen extends Screen {
             }
             this.state = states.playing;
             this.updateTrayMenu();
-
           }, (err) => {
+            this.log('Spotify err: ' + err);
             this.states = states.refreshing;
             this.spotifyApi.refreshAccessToken().then(
               (data) => {
@@ -117,7 +137,7 @@ class SpotifyScreen extends Screen {
             )
           });
       }
-      this.updateScreen();
+      this.requestUpdateScreen();
       await this.wait(1000);
     }
   }

@@ -55,7 +55,14 @@ class ScreenManager {
   }
 
   setActiveScreen(index) {
+    const lastActive = this.activeScreen;
     this.activeScreen = Math.min(Math.max(index, 0), this.screens.length);
+
+    if (lastActive == this.activeScreen) {
+      return;
+    }
+    this.screens[lastActive].deactivate();
+    this.screens[this.activeScreen].activate();
     this.updateScreenCallback();
   }
 

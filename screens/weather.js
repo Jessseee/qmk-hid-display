@@ -8,12 +8,26 @@ const request = require('request');
 class WeatherScreen extends Screen {
   init() {
     super.init();
-    this.startWeatherMonitor();
+    this.name = 'Weather';
 
     this.description = '';
     this.temp = '';
     this.high = '';
     this.rain = '';
+  }
+
+  activate() {
+    // If we have a running loop, then wait for it to finish and then start
+    // a new one
+    if (this.runningMonitor && !this.active) {
+      this.runningMonitor.then(() => {
+        super.activate();
+        this.runningMonitor = this.weatherMonitor();
+      });
+    } else {
+      super.activate();
+      this.runningMonitor = this.weatherMonitor();
+    }
   }
 
   getWeather() {
@@ -53,13 +67,16 @@ class WeatherScreen extends Screen {
     super.updateScreen();
   }
 
-  async startWeatherMonitor() {
+  async weatherMonitor() {
     // Used for scrolling long weather descriptions
     let lastWeather = null;
     let lastWeatherDescIndex = 0;
 
     // Just keep updating the data forever
     while (true) {
+      if (!this.active) {
+        break;
+      }
       // Get the current weather for Seattle
       const weather = await this.getWeather();
       if (weather && weather.temp && weather.desc && weather.rain) {

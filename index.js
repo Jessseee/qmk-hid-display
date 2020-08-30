@@ -41,7 +41,6 @@ nconf.load();
 const KEYBOARD_NAME = nconf.get('keyboardName');
 const KEYBOARD_USAGE_ID =  0x61;
 const KEYBOARD_USAGE_PAGE = 0xFF60;
-const KEYBOARD_UPDATE_TIME = 1000;
 
 let keyboard = null;
 let screenBuffer = null;
@@ -111,7 +110,7 @@ function initializeConnection() {
           const requestedScreen = e[0] - 1;
           if (requestedScreen >= 0 && requestedScreen < screenManager.numScreens) {
             screenManager.setActiveScreen(requestedScreen);
-            console.log(`Keyboard requested screen index: ${requestedScreen}`);
+            console.log(`Activating screen: ${screenManager.getActiveScreen().name}`);
           }
         });
 

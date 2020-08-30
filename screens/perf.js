@@ -8,14 +8,15 @@ const perfmon = require('perfmon');
 class PerfScreen extends Screen {
   init() {
     super.init();
-    this.startPerfMonitor();
+    this.name = 'Perf';
 
     this.cpu = 0;
     this.mem = 0;
     this.dsk = 0;
+    this.perfmonStream = this.perfMonitor();
   }
 
-  startPerfMonitor() {
+  perfMonitor() {
     // Set the perf counter that we need for the performance screen
     const counters = new Map();
     counters.set('cpu', '\\Processor(_Total)\\% Processor Time');
@@ -27,11 +28,11 @@ class PerfScreen extends Screen {
       return Math.min(1.0, Math.max(0.0, value));
     }
 
-    perfmon([...counters.values()], (err, data) => {
+    return perfmon([...counters.values()], (err, data) => {
       if (!data || Object.getOwnPropertyNames(data.counters).length < counters.size) {
         // Sometimes perfmon doesn't get all the counters working, no idea why.
         // Let's just restart to try it again
-        console.log('Could not find all perf counters, restarting perfmon...');
+        this.log('Could not find all perf counters, restarting perfmon...');
         perfmon.stop();
         perfmon.start();
         return;
@@ -44,6 +45,16 @@ class PerfScreen extends Screen {
 
       this.updateScreen();
     });
+  }
+
+  activate() {
+    super.activate();
+    this.perfmonStream.resume();
+  }
+
+  deactivate() {
+    super.deactivate();
+    this.perfmonStream.pause();
   }
 
   updateScreen() {
