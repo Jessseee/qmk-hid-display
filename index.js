@@ -81,8 +81,13 @@ async function sendToKeyboard(screen) {
   // keyboard to store it ready to send to the slave side once full.
   let index = 0;
   for (const line of lines) {
-    keyboard.write(line);
-    await wait(10);
+    try {
+      keyboard.write(line);
+      await wait(10);
+    } catch {
+      keyboard = null;
+      initializeConnection();
+    }
   }
 
   // We have sent the screen data, so clear it ready for the next one
