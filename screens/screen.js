@@ -77,7 +77,7 @@ class Screen {
   }
 
   log(output) {
-    console.log(`[${this.name}] ${output}`);
+    console.log(`[${this.name}|${new Date().toLocaleString()}] ${output}`);
   }
 
   screenBar(progress, label = '', showNum = false, endPoints = true) {
