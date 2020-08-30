@@ -33,7 +33,10 @@ nconf.argv()
   .defaults({
     'keyboardName': 'SPIN',
     'spotifyClientId': '<spotify client id>',
-    'spotifyClientSecret': '<spotify client secret>'
+    'spotifyClientSecret': '<spotify client secret>',
+    'weatherLocation': 'Santa Monica, CA',
+    'weatherDegreeType': 'F',
+    'stocks': 'TSLA,NFLX,AMZN,AAPL'
   });
 nconf.load();
 

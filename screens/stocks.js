@@ -11,12 +11,10 @@ class StocksScreen extends LoopingScreen {
     this.name = 'Stocks';
 
     // Set the stocks that we want to show
-    // TODO: nconf
-    this.stocks = new Map([
-      ['TSLA', 0],
-      ['AMZN', 0],
-      ['AAPL', 0]
-    ]);
+    this.stocks = new Map();
+    for (let stock of this.nconf.get('stocks').split(',')) {
+      this.stocks.set(stock.trim(), 0);
+    }
   }
 
   update() {

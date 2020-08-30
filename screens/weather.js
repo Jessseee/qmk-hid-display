@@ -13,8 +13,8 @@ class WeatherScreen extends LoopingScreen {
     this.high = '';
     this.rain = '';
 
-    this.location = 'Santa Monica, CA';
-    this.degreeType = 'F';
+    this.location = this.nconf.get('weatherLocation');
+    this.degreeType = this.nconf.get('weatherDegreeType');
   }
 
   updateScreen() {
@@ -33,7 +33,7 @@ class WeatherScreen extends LoopingScreen {
         if (err) {
           this.log('Error: ' + err);
         }
-        this.description = '' + result[0].current.skytext;
+        this.description = result[0].current.skytext;
         this.temp = result[0].current.temperature;
         // forecast[1] is today
         this.high = result[0].forecast[1].high;
