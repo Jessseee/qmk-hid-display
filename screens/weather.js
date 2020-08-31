@@ -32,6 +32,7 @@ class WeatherScreen extends LoopingScreen {
       (err, result) => {
         if (err) {
           this.log('Error: ' + err);
+          return;
         }
         this.description = result[0].current.skytext;
         this.temp = result[0].current.temperature;
