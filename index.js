@@ -41,9 +41,6 @@ nconf.argv()
   });
 nconf.load();
 
-// Keyboard info;
-
-
 let screenManager = null;
 let tray = null;
 

@@ -61,7 +61,6 @@ async function sendToKeyboard(screen) {
       initConnection();
     }
   }
-
   // We have sent the screen data, so clear it ready for the next one
   screenBuffer = null;
 }
