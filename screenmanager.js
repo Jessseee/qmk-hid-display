@@ -1,11 +1,13 @@
 'use strict';
 
+const LogoScreen = require('./screens/logo.js');
 const SpotifyScreen = require('./screens/spotify.js');
 const PerfScreen = require('./screens/perf.js');
 const StocksScreen = require('./screens/stocks.js');
 const WeatherScreen = require('./screens/weather.js');
 
 const screenClasses = [
+  LogoScreen,
   PerfScreen,
   StocksScreen,
   WeatherScreen,

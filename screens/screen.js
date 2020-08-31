@@ -23,7 +23,10 @@ class Screen {
     this.lastTrayMenu = [];
 
     this.init();
-    this.screen = [this.name];
+    // Default screen to name
+    if (this.screen.length == 0) {
+      this.screen = [this.name];
+    }
   }
 
   init() {

@@ -16,7 +16,7 @@ if (fs.existsSync(secret_file)) {
 } else {
   const buf = Buffer.alloc(10);
   secret = crypto.randomFillSync(buf).toString('hex');
-  fs.writeFile(secret_file, secret, function() {});
+  fs.writeFile(secret_file, secret, () => {});
 }
 
 // read conf, encrypt user data

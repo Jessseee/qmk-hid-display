@@ -26,10 +26,29 @@ function init(inKeyboardName, inKeyboardId, inKeyboardPage, inScreenManager) {
   screenManager = inScreenManager;
 }
 
+let lastUnsent = null;
 async function sendToKeyboard(screen) {
-  // If we are already buffering a screen to the keyboard just quit early.
-  // Or if there is no update from what we sent last time.
-  if (screenBuffer || screenLastUpdate === screen) {
+  // If we are buffering a screen, note the last unsent message, and queue an
+  // update in 1s.
+  if (screenBuffer && screen) {
+    lastUnsent = screen;
+    setInterval(() => { sendToKeyboard() }, 1000);
+    return;
+  }
+
+  // If we are not buffering a screen, check if screen is null. If the screen
+  // is null, and we have an unsent message, then push that
+  if (!screen && lastUnsent) {
+    screen = lastUnsent;
+  }
+
+  // If we made it this far, the screen wasn't buffering when we sent the
+  // message, or we are displaying the last unsent one. Clear the last unsent.
+  lastUnsent = null;
+
+  // If there is no update from what we sent last time, then exit early.
+  // or if we are a queued message that was superceded by a later message
+  if (screenLastUpdate === screen || !screen) {
     return;
   }
 
@@ -61,6 +80,7 @@ async function sendToKeyboard(screen) {
       initConnection();
     }
   }
+
   // We have sent the screen data, so clear it ready for the next one
   screenBuffer = null;
 }
