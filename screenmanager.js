@@ -6,6 +6,7 @@ const PerfScreen = require('./screens/perf.js');
 const StocksScreen = require('./screens/stocks.js');
 const WeatherScreen = require('./screens/weather.js');
 const CryptoScreen = require('./screens/crypto.js');
+const NotificationsScreen = require('./screens/notifications.js');
 
 const screenClasses = [
   LogoScreen,
@@ -13,7 +14,8 @@ const screenClasses = [
   StocksScreen,
   CryptoScreen,
   WeatherScreen,
-  SpotifyScreen
+  SpotifyScreen,
+  NotificationsScreen
 ];
 
 class ScreenManager {

@@ -115,9 +115,12 @@ class Screen {
     return out;
   }
 
-  screenScroll(str, speed = 1000, label = '') {
+  screenScroll(str, speed = 1000, label = '', displayWidth = -1) {
     const ms = Date.now();
-    const scrollSpace = this.displayWidth - label.length;
+    if (displayWidth < 0) {
+      displayWidth = this.displayWidth;
+    }
+    const scrollSpace = displayWidth - label.length;
     if (scrollSpace < 1 || str.length + label.length < scrollSpace) {
       // cannot scroll
       return label + str;

@@ -3,7 +3,6 @@
 
 const { LoopingScreen } = require('./screen.js');
 const CoinMarketCap = require('coinmarketcap-api');
-const request = require('request');
 
 class CryptoScreen extends LoopingScreen {
   init() {
@@ -22,8 +21,8 @@ class CryptoScreen extends LoopingScreen {
     // jank flag to allow a different update freq
     this.updating = false;
 
-    // check every minute
-    this.updateDelay = 60000;
+    // check every 5 minutes
+    this.updateDelay = 300000;
   }
 
   update() {
