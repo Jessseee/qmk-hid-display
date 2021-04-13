@@ -15,6 +15,9 @@ class NotificationsSingleScreen extends NotificationsScreen {
       let notification = this.notifications[0];
       this.screen.push(this.screenScroll(notification.appName));
       this.screen.push(...this.screenSplit(notification.contents, 3));
+    } else {
+      this.screen.push(...['', '', '']);
+      this.screen.push('[no notifications]');
     }
   }
 }

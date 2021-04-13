@@ -81,10 +81,15 @@ class NotificationsScreen extends LoopingScreen {
 
   generateScreenOutput() {
     this.screen = [];
-    for (let i = 0; i < Math.min(4, this.notifications.length); i++) {
-      let notification = this.notifications[i];
-      this.screen.push(this.screenScroll(notification.contents, 1000,
-        this.screenScroll(notification.appName, 1000, '', 6) + '|'));
+    if (this.notifications.length > 0) {
+      for (let i = 0; i < Math.min(4, this.notifications.length); i++) {
+        let notification = this.notifications[i];
+        this.screen.push(this.screenScroll(notification.contents, 1000,
+          this.screenScroll(notification.appName, 1000, '', 6) + '|'));
+      }
+    } else {
+      this.screen.push(...['', '', '']);
+      this.screen.push('[no notifications]');
     }
   }
 
