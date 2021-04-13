@@ -133,6 +133,36 @@ class Screen {
     return label + str.substr(offset, scrollSpace);
   }
 
+  screenSplit(str, numLines = -1) {
+    let out = [];
+    let width = this.displayWidth;
+
+    // split words, then add words into max width length strings.
+    let words = str.split(' ');
+    let currentLine = '';
+    for (let word of words) {
+      if (currentLine.length + word.length > width) {
+        out.push(currentLine);
+        currentLine = word;
+      } else {
+        if (currentLine.length > 0) {
+          currentLine += ' ';
+        }
+        currentLine += word;
+      }
+    }
+    out.push(currentLine);
+
+    // If number of lines were specified, turn last one into a scroll
+    if (numLines > 0) {
+      let scrolledLastLine = this.screenScroll(
+        out.slice(numLines - 1).join(''));
+      out = out.slice(0, numLines - 1);
+      out.push(scrolledLastLine);
+    }
+    return out;
+  }
+
   // Helper wait function
   wait(ms) {
     return new Promise((resolve) => {

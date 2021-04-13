@@ -1,4 +1,4 @@
-// crypto page
+// notifications page
 'use strict';
 
 const { LoopingScreen } = require('./screen.js');
@@ -79,13 +79,17 @@ class NotificationsScreen extends LoopingScreen {
     this.updateScreen();
   }
 
-  updateScreen() {
+  generateScreenOutput() {
     this.screen = [];
     for (let i = 0; i < Math.min(4, this.notifications.length); i++) {
       let notification = this.notifications[i];
       this.screen.push(this.screenScroll(notification.contents, 1000,
         this.screenScroll(notification.appName, 1000, '', 6) + '|'));
     }
+  }
+
+  updateScreen() {
+    this.generateScreenOutput();
     super.updateScreen();
   }
 }
