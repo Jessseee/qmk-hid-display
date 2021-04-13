@@ -3,7 +3,7 @@
 const nconf = require('nconf');
 const fs = require('fs');
 const crypto = require('crypto');
-const { app, BrowserWindow, Menu, Tray, session } = require('electron');
+const { app, Menu, Tray, session } = require('electron');
 const ScreenManager = require('./screenmanager.js');
 const keyboardHid = require('./keyboardhid.js');
 

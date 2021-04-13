@@ -2,6 +2,7 @@
 'use strict';
 
 const { LoopingScreen } = require('./screen.js');
+const { BrowserWindow } = require('electron');
 const SpotifyWebApi = require('spotify-web-api-node');
 
 const states = {
@@ -22,13 +23,13 @@ class SpotifyScreen extends LoopingScreen {
     this.authWinClosedManually = false;
 
     //spotify api setup
-    const spotifyClientId = this.nconf.get('spotifyClientId')
-    const spotifyClientSecret = this.nconf.get('spotifyClientSecret')
-    this.callbackUri = 'http://localhost/spotifyCallback'
+    const spotifyClientId = this.nconf.get('spotifyClientId');
+    const spotifyClientSecret = this.nconf.get('spotifyClientSecret');
+    this.callbackUri = 'http://localhost/spotifyCallback';
     this.spotifyApi = new SpotifyWebApi({
       clientId: spotifyClientId,
       clientSecret: spotifyClientSecret,
-      redirectUri: this.spotifyCallbackUri
+      redirectUri: this.callbackUri
     });
     const refreshToken = this.nconf.get('refreshToken');
     this.spotifyApi.setRefreshToken(refreshToken);
@@ -48,9 +49,9 @@ class SpotifyScreen extends LoopingScreen {
 
   updateTrayMenu() {
     if (this.state == states.loggedOut) {
-      this.trayMenu = [{ label: 'Log in to Spotify', click: this.createAuthWin }];
+      this.trayMenu = [{ label: 'Log in to Spotify', click: () => this.createAuthWin() }];
     } else {
-      this.trayMenu = [{ label: 'Log out of Spotify', click: this.logOut }];
+      this.trayMenu = [{ label: 'Log out of Spotify', click: () => this.logOut() }];
     }
     super.updateTrayMenu();
   }
@@ -152,7 +153,7 @@ class SpotifyScreen extends LoopingScreen {
       'user-read-playback-state',
       'user-modify-playback-state',
       'user-read-currently-playing'];
-    const authUrl = spotifyApi.createAuthorizeURL(scopes, 'randomstate');
+    const authUrl = this.spotifyApi.createAuthorizeURL(scopes, 'randomstate');
     // for whatever reason this doesnt work unless i load this first
     this.authWin.loadURL('about:blank');
     this.authWin.loadURL(authUrl);
@@ -192,7 +193,7 @@ class SpotifyScreen extends LoopingScreen {
       this.destroyAuthWin();
     });
 
-    spotifyAuthWin.on('closed', () => {
+    this.authWin.on('closed', () => {
       this.authWinClosedManually = true;
       this.authWin = null;
     });
@@ -210,7 +211,7 @@ class SpotifyScreen extends LoopingScreen {
     this.spotifyApi.setAccessToken('');
     this.nconf.set('refreshToken', '');
     this.nconf.save('user');
-    this.states = state.loggedOut;
+    this.state = states.loggedOut;
     this.closedWindowManually = true;
     this.updateTrayMenu();
   }
