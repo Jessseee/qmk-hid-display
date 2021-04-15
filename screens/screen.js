@@ -156,7 +156,7 @@ class Screen {
     // If number of lines were specified, turn last one into a scroll
     if (numLines > 0) {
       let scrolledLastLine = this.screenScroll(
-        out.slice(numLines - 1).join(''));
+        out.slice(numLines - 1).join(' '));
       out = out.slice(0, numLines - 1);
       out.push(scrolledLastLine);
     }
