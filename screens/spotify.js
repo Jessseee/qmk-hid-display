@@ -35,6 +35,10 @@ class SpotifyScreen extends LoopingScreen {
     // updated by the monitor
     this.setState(states.loggedOut);
     this.songInfo = {};
+
+    // using PKCE we need to reauth every start. better here than when
+    // we fail a request
+    this.createAuthWin();
   }
 
   setState(newState) {
