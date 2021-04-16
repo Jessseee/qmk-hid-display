@@ -24,11 +24,9 @@ class SpotifyScreen extends LoopingScreen {
 
     //spotify api setup
     const spotifyClientId = this.nconf.get('spotifyClientId');
-    const spotifyClientSecret = this.nconf.get('spotifyClientSecret');
     this.callbackUri = 'http://localhost/spotifyCallback';
     this.spotifyApi = new SpotifyWebApi({
       clientId: spotifyClientId,
-      clientSecret: spotifyClientSecret,
       redirectUri: this.callbackUri
     });
     const refreshToken = this.nconf.get('refreshToken');
@@ -118,23 +116,27 @@ class SpotifyScreen extends LoopingScreen {
               this.setState(states.notPlaying);
             }
           }, (err) => {
-            this.log('Spotify err: ' + err);
-            this.states = states.refreshing;
-            this.spotifyApi.refreshAccessToken().then(
-              (data) => {
-                this.log('The access token has been refreshed!');
-                this.spotifyApi.setAccessToken(data.body['access_token']);
-                this.updateTrayMenu();
-              },
-              (err) => {
-                this.log('Could not refresh access token', err);
-                this.setState(state.loggedOut);
-                this.updateTrayMenu();
-                if (!this.authWinClosedManually) {
-                  this.createAuthWin();
+            // Don't complain if we have an auth window open -- we're likely
+            // reauthing
+            if (!this.authWin) {
+              this.log('Spotify err: ' + err);
+              this.states = states.refreshing;
+              this.spotifyApi.refreshAccessToken().then(
+                (data) => {
+                  this.log('The access token has been refreshed!');
+                  this.spotifyApi.setAccessToken(data.body['access_token']);
+                  this.updateTrayMenu();
+                },
+                (err) => {
+                  this.log('Could not refresh access token ' + err);
+                  this.setState(states.loggedOut);
+                  this.updateTrayMenu();
+                  if (!this.authWinClosedManually) {
+                    this.createAuthWin();
+                  }
                 }
-              }
-            )
+              )
+            }
           });
       }
       this.requestUpdateScreen();
@@ -180,7 +182,7 @@ class SpotifyScreen extends LoopingScreen {
           this.updateTrayMenu();
         },
         (err) => {
-          this.log('Something went wrong in auth!', err);
+          this.log('Something went wrong in auth!' + err);
           this.setState(states.loggedOut);
           this.updateTrayMenu();
         }
