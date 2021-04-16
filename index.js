@@ -37,8 +37,7 @@ nconf.argv()
     'weatherLocation': 'Santa Monica, CA',
     'weatherDegreeType': 'F',
     'stocks': 'TSLA,NFLX,AMZN,AAPL',
-    'coinmarketcapApiKey': '<coinmarketcap API key>',
-    'cryptocurrencies': 'BTC,ETH,ADA',
+    'cryptocurrencies': 'bitcoin,ethereum,cardano',
   });
 nconf.load();
 

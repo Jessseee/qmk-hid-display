@@ -2,74 +2,66 @@
 'use strict';
 
 const { LoopingScreen } = require('./screen.js');
-const CoinMarketCap = require('coinmarketcap-api');
+const request = require('request');
 
 class CryptoScreen extends LoopingScreen {
   init() {
     super.init();
     this.name = 'Crypto';
 
-    const apiKey = this.nconf.get('coinmarketcapApiKey');
-    this.cmcClient = new CoinMarketCap(apiKey);
-
     this.quotes = new Map();
-    for (let symbol of this.nconf.get('cryptocurrencies').split(',')) {
-      this.quotes.set(symbol.trim(), {});
+    for (let crypto of this.nconf.get('cryptocurrencies').split(',')) {
+      this.quotes.set(crypto.trim(), []);
     }
-    this.error = null;
-
-    // jank flag to allow a different update freq
-    this.updating = false;
-
-    // check every 5 minutes
-    this.updateDelay = 300000;
   }
 
   update() {
-    if (!this.updating) {
-      // Start an update if we don't one have in progress
-      this.updating = true;
-      this.cmcClient.getQuotes({symbol: Array.from(this.quotes.keys())})
-        .then((result) => { this.updateCrypto(result); })
-        .catch(console.error);
-    }
+    this.updateCryptoPrices();
     this.updateScreen();
+  }
+
+  updateCryptoPrices() {
+    const promises = [];
+    const priceRegex = /"priceValue[^>]+>\$([^<]+)</;
+    const codeRegex = /"nameSymbol[^>]+>([^<]+)</;
+    const percentRegex = /"priceValue[^!]+icon-Caret-([^"]+)"><\/span>([^\s]+)\s*</;
+    for (const [cryptocurrency, value] of this.quotes) {
+      promises.push(new Promise((resolve) => {
+        request(`https://coinmarketcap.com/currencies/${cryptocurrency}/`,
+          (err, res, body) => {
+          const priceResult = priceRegex.exec(body);
+          const codeResult = codeRegex.exec(body);
+          const percentResult = percentRegex.exec(body);
+          if (priceResult && priceResult.length > 1) {
+            let price = parseFloat(priceResult[1].replace(',',''));
+            let code = codeResult[1];
+            price = price.toFixed(2);
+            let percentDirection = percentResult[1];
+            let percent = parseFloat(percentResult[2].replace(',',''));
+            if (percentDirection == 'down') {
+              percent *= -1;
+            }
+            this.quotes.set(cryptocurrency, [code, price, percent]);
+          }
+          resolve();
+        });
+      }));
+    }
+    return Promise.all(promises);
   }
 
   updateScreen() {
     this.screen = [];
-    if (this.error) {
-      this.screen.push(this.screenScroll(this.error));
-    } else {
-      for (const [symbol, quote] of this.quotes) {
-        if (!quote.USD) {
-          // quote not populated / doesn't have USD
-          continue;
-        }
-        this.screen.push(symbol.padStart(4) + ': $'
-          + quote.USD.price.toString().substr(0, 7).padEnd(7)
-          + ((quote.USD.percent_change_24h).toFixed(1) + '%').padStart(7));
+    for (const [key, value] of this.quotes) {
+      if (value.length == 0) {
+        continue;
       }
+      let [code, price, percent] = value;
+      this.screen.push(code.padStart(4) + ': $'
+        + price.toString().substr(0, 7).padEnd(7)
+        + (percent.toFixed(1) + '%').padStart(7));
     }
     super.updateScreen();
-  }
-
-  async updateCrypto(result) {
-    this.error = null;
-    if (result.status.error_code != 0) {
-      this.error = result.status.error_message;
-      console.error(this.error);
-    } else {
-      for (const symbol in result.data) {
-        if (result.data[symbol]) {
-          this.quotes.set(symbol, result.data[symbol].quote);
-        }
-      }
-    }
-    // wait the update delay before starting again
-    // TODO: cleanup this jank
-    await this.wait(this.updateDelay);
-    this.updating = false;
   }
 }
 

@@ -12,7 +12,6 @@
     "@nodert-win10-20h1/windows.applicationmodel": "^0.1.0",
     "@nodert-win10-20h1/windows.ui.notifications": "^0.1.0",
     "@nodert-win10-20h1/windows.ui.notifications.management": "^0.1.0",
-    "coinmarketcap-api": "^3.1.1",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
     "microstats": "0.1.2",
