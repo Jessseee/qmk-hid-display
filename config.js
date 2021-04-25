@@ -131,9 +131,9 @@ class Config {
 
     // Don't show until we are ready and loaded
     this.configWindow.once('ready-to-show', () => {
+      this.configWindow.show();
       if (dev) {
         // Open the window and DevTools automatically if developing
-        this.configWindow.show();
         this.configWindow.webContents.openDevTools();
       }
     });

@@ -4,6 +4,7 @@ const { app, Menu, Tray, session } = require('electron');
 const ScreenManager = require('./screenmanager.js');
 const keyboardHid = require('./keyboardhid.js');
 const { Config } = require('./config.js');
+const path = require('path');
 
 let screenManager = new ScreenManager();;
 let tray = null;
@@ -24,7 +25,7 @@ function updateContextMenu() {
 }
 
 function createTray () {
-  tray = new Tray('./icon16.png');
+  tray = new Tray(path.join(__dirname, './icon16.png'));
   tray.setToolTip('QMK HID Display');
   updateContextMenu();
   // todo: make this init flow simpler
