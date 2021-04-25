@@ -4,6 +4,7 @@
 const { LoopingScreen } = require('./screen.js');
 const { BrowserWindow } = require('electron');
 const SpotifyWebApi = require('spotify-web-api-node');
+const { ConfigPage } = require('../config.js');
 
 const states = {
   loggedOut: 0,
@@ -15,30 +16,49 @@ const states = {
 Object.freeze(states);
 
 class SpotifyScreen extends LoopingScreen {
-  init() {
-    super.init();
+  constructor(...args) {
+    super(...args);
     this.name = 'Spotify';
-
+    this.storePrefix = 'screens-spotify-';
     this.authWin = null;
     this.authWinClosedManually = false;
 
+    this.configPage = new ConfigPage(this.storePrefix, [
+      { params: {
+        clientId: { label: 'Client ID', 
+          default: 'b9832488ef7147088dbe22b95679d9d4' }
+      }},
+      { label: 'Advanced',
+        hidden: true,
+        params: {
+          refreshToken: { label: 'Refresh Token', default: '' },
+        }}], this.configPage);
+    this.songInfo = {};
+  }
+
+  init() {
+    super.init();
+    this.initSpotify();
+    this.onStoreChanged('clientId',
+      () => { this.logOut(); this.initSpotify() });
+    // using PKCE we need to reauth every start. better here than when
+    // we fail a request
+    //this.createAuthWin();
+  }
+
+  initSpotify() {
     //spotify api setup
-    const spotifyClientId = this.nconf.get('spotifyClientId');
+    const spotifyClientId = this.getStore('clientId');
     this.callbackUri = 'http://localhost/spotifyCallback';
     this.spotifyApi = new SpotifyWebApi({
       clientId: spotifyClientId,
       redirectUri: this.callbackUri
     });
-    const refreshToken = this.nconf.get('refreshToken');
+    const refreshToken = this.getStore('refreshToken');
     this.spotifyApi.setRefreshToken(refreshToken);
 
     // updated by the monitor
     this.setState(states.loggedOut);
-    this.songInfo = {};
-
-    // using PKCE we need to reauth every start. better here than when
-    // we fail a request
-    this.createAuthWin();
   }
 
   setState(newState) {
@@ -123,27 +143,36 @@ class SpotifyScreen extends LoopingScreen {
             // Don't complain if we have an auth window open -- we're likely
             // reauthing
             if (!this.authWin) {
-              this.log('Spotify err: ' + err);
-              this.states = states.refreshing;
-              this.spotifyApi.refreshAccessToken().then(
-                (data) => {
-                  this.log('The access token has been refreshed!');
-                  this.spotifyApi.setAccessToken(data.body['access_token']);
-                  this.updateTrayMenu();
-                },
-                (err) => {
-                  this.log('Could not refresh access token ' + err);
-                  this.setState(states.loggedOut);
-                  this.updateTrayMenu();
-                  if (!this.authWinClosedManually) {
-                    this.createAuthWin();
-                  }
-                }
-              )
+              this.log('Refreshing access token...');
+              this.refreshAccessToken();
+            } else {
+              this.setState(states.refreshing);
             }
           });
       }
       this.requestUpdateScreen();
+  }
+
+  refreshAccessToken() {
+    this.states = states.refreshing;
+    this.spotifyApi.refreshAccessToken().then(
+      (data) => {
+        this.log('The access token has been refreshed!');
+        this.spotifyApi.setAccessToken(data.body['access_token']);
+        let refreshToken = data.body['refresh_token'];
+        this.spotifyApi.setRefreshToken(refreshToken);
+        this.setStore('refreshToken', refreshToken);
+        this.updateTrayMenu();
+      },
+      (err) => {
+        this.log('Could not refresh access token ' + err);
+        this.logOut();
+        this.updateTrayMenu();
+        if (!this.authWinClosedManually) {
+          this.createAuthWin();
+        }
+      }
+    );
   }
 
   createAuthWin() {
@@ -179,9 +208,8 @@ class SpotifyScreen extends LoopingScreen {
             refreshToken = data.body.refresh_token;
           this.spotifyApi.setAccessToken(accessToken);
           this.spotifyApi.setRefreshToken(refreshToken);
-          this.nconf.set('refreshToken', refreshToken);
-          this.nconf.save('user');
-          this.log('logged in');
+          this.setStore('refreshToken', refreshToken);
+          this.log('Logged in.');
           this.setState(states.refreshing);
           this.updateTrayMenu();
         },
@@ -215,8 +243,7 @@ class SpotifyScreen extends LoopingScreen {
     this.session.defaultSession.clearStorageData([], (data) => {});
     this.spotifyApi.setRefreshToken('');
     this.spotifyApi.setAccessToken('');
-    this.nconf.set('refreshToken', '');
-    this.nconf.save('user');
+    this.setStore('refreshToken', '');
     this.state = states.loggedOut;
     this.closedWindowManually = true;
     this.updateTrayMenu();

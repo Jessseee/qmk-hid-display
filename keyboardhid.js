@@ -24,6 +24,9 @@ function init(inKeyboardName, inKeyboardId, inKeyboardPage, inScreenManager) {
   keyboardId = inKeyboardId;
   keyboardPage = inKeyboardPage;
   screenManager = inScreenManager;
+
+  // keyboard will be set in initConnection()
+  keyboard = null;
 }
 
 let lastUnsent = null;
@@ -85,6 +88,7 @@ async function sendToKeyboard(screen) {
   screenBuffer = null;
 }
 
+let timeout;
 function initConnection() {
   // If we don't have a connection to a keyboard yet, look now
   if (screenManager && !keyboard) {
@@ -115,8 +119,12 @@ function initConnection() {
       }
     }
   }
-  else {
-    setInterval(() => { initConnection() }, 1000);
+  else if (!timeout) {
+    console.log('Could not connect to keyboard. Retrying...');
+    timeout = setInterval(() => {
+      initConnection();
+      timeout = null; },
+      1000);
     return;
   }
 }

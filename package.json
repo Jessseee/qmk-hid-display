@@ -2,18 +2,27 @@
   "name": "qmk-hid-display-bwang",
   "version": "1.0.0",
   "description": "A small node script that will communicate with a qmk keyboard over raw hid. Customized over James Lissiak's original version.",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
-    "start": ".\\node_modules\\.bin\\electron ."
+    "start": "electron .",
+    "prod": "webpack --config webpack.build.config.js && electron --noDevServer .",
+    "dev": "webpack-dev-server --hot --host 0.0.0.0 --config=./webpack.dev.config.js",
+    "build": "webpack --config webpack.build.config.js",
+    "package": "webpack --config webpack.build.config.js",
+    "postpackage": "electron-packager ./ --out=./builds"
   },
   "author": "Brandon Wang",
   "license": "MIT",
   "dependencies": {
+    "@babel/plugin-proposal-class-properties": "^7.13.0",
+    "@material-ui/core": "^4.11.3",
     "@nodert-win10-20h1/windows.applicationmodel": "^0.1.0",
     "@nodert-win10-20h1/windows.ui.notifications": "^0.1.0",
     "@nodert-win10-20h1/windows.ui.notifications.management": "^0.1.0",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
+    "electron-store": "^8.0.0",
+    "lodash": "^4.17.21",
     "microstats": "0.1.2",
     "nconf": "^0.10.0",
     "node-hid": "0.7.8",
@@ -24,7 +33,24 @@
     "weather-js": "^2.0.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.0.0",
+    "@babel/preset-env": "^7.0.0",
+    "@babel/preset-react": "^7.0.0",
+    "babel-loader": "^8.0.0",
+    "babel-preset-react": "^6.24.1",
+    "babili-webpack-plugin": "^0.1.2",
+    "css-loader": "^3.2.0",
     "electron": "^12.0.0",
-    "electron-rebuild": "^2.3.5"
+    "electron-packager": "^14.1.1",
+    "electron-rebuild": "^2.3.5",
+    "extract-text-webpack-plugin": "^4.0.0-beta.0",
+    "file-loader": "^5.0.2",
+    "html-webpack-plugin": "^3.2.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "style-loader": "^1.0.1",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.10",
+    "webpack-dev-server": "^3.9.0"
   }
 }

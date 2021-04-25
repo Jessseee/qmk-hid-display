@@ -1,13 +1,15 @@
 // base screen class
 'use strict';
 
-const { isEqual } = require('lodash');
+const { isEqual, merge } = require('lodash');
+const { ConfigPage } = require('../config.js');
 
 class Screen {
-  constructor(tray, nconf, session, updateTrayMenuCallback, updateScreenCallback, displayHeight = 4, displayWidth = 21) {
+  constructor(tray, config, session, updateTrayMenuCallback, updateScreenCallback, displayHeight = 4, displayWidth = 21) {
     this.name = 'Screen';
+    this.storePrefix = 'screens-screen-';
     this.tray = tray;
-    this.nconf = nconf;
+    this.config = config;
     this.session = session;
     this.updateTrayMenuCallback = updateTrayMenuCallback;
     this.updateScreenCallback = updateScreenCallback;
@@ -22,7 +24,8 @@ class Screen {
     this.lastScreen = [];
     this.lastTrayMenu = [];
 
-    this.init();
+    this.configPage = new ConfigPage(this.storePrefix); 
+
     // Default screen to name
     if (this.screen.length == 0) {
       this.screen = [this.name];
@@ -30,6 +33,9 @@ class Screen {
   }
 
   init() {
+    // Init is called after other dependent classes, like config,
+    // have been init()d themselves.
+    // probably turn this into some callback
   }
 
   activate() {
@@ -54,6 +60,11 @@ class Screen {
   }
 
   updateScreen() {
+    if (this.screen.length < 4) {
+      for (let i = this.screen.length; i < 4; i++) {
+        this.screen.push('');
+      }
+    }
     if (!isEqual(this.screen, this.lastScreen)) {
       this.lastScreen = this.screen;
       this.updateScreenCallback();
@@ -79,6 +90,24 @@ class Screen {
     return parsedScreen;
   }
 
+  // electron-store wrapping
+  getStoreKey(localKey) {
+    return this.storePrefix + localKey;
+  }
+
+  getStore(localKey) {
+    return this.config.store.get(this.getStoreKey(localKey));
+  }
+
+  setStore(localKey, value) {
+    return this.config.store.set(this.getStoreKey(localKey), value);
+  }
+
+  onStoreChanged(localKey, callback) {
+    return this.config.store.onDidChange(this.getStoreKey(localKey), callback);
+  }
+
+  // helpers
   log(output) {
     console.log(`[${this.name}|${new Date().toLocaleString()}] ${output}`);
   }
@@ -172,8 +201,8 @@ class Screen {
 }
 
 class LoopingScreen extends Screen {
-  init() {
-    super.init();
+  constructor(...args) {
+    super(...args);
     this.activeLoop = null;
     this.loopDelay = 1000;
   }
@@ -207,4 +236,7 @@ class LoopingScreen extends Screen {
   }
 }
 
-module.exports = {Screen: Screen, LoopingScreen: LoopingScreen};
+module.exports = {
+  Screen: Screen,
+  LoopingScreen: LoopingScreen,
+};

@@ -2,19 +2,29 @@
 
 const { LoopingScreen } = require('./screen.js');
 const weather = require('weather-js');
+const { ConfigPage } = require('../config.js');
 
 class WeatherScreen extends LoopingScreen {
-  init() {
-    super.init();
+  constructor(...args) {
+    super(...args);
     this.name = 'Weather';
+    this.storePrefix = 'screens-weather-';
 
     this.description = '';
     this.temp = '';
     this.high = '';
     this.rain = '';
 
-    this.location = this.nconf.get('weatherLocation');
-    this.degreeType = this.nconf.get('weatherDegreeType');
+    this.configPage = new ConfigPage(this.storePrefix, [
+      { params: {
+        location: { label: 'Location', default: 'Santa Monica, CA' },
+        temperatureUnits: { label: 'Client ID', 
+          default: 'b9832488ef7147088dbe22b95679d9d4' }
+      }}], this.configPage);
+  }
+
+  init() {
+    super.init();
   }
 
   updateScreen() {
@@ -28,7 +38,8 @@ class WeatherScreen extends LoopingScreen {
   }
 
   update() {
-    weather.find({search: this.location, degreeType: this.degreeType},
+    weather.find({search: this.getStore('location'),
+      degreeType: this.getStore('temperatureUnits')},
       (err, result) => {
         if (err) {
           this.log('Error: ' + err);

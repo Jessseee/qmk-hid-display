@@ -1,5 +1,6 @@
 'use strict';
 
+const { merge } = require('lodash');
 const LogoScreen = require('./screens/logo.js');
 const SpotifyScreen = require('./screens/spotify.js');
 const PerfScreen = require('./screens/perf.js');
@@ -21,23 +22,29 @@ const screenClasses = [
 ];
 
 class ScreenManager {
-  constructor(screenArgs, updateTrayMenuCallback, updateScreenCallback, displayHeight = 4, displayWidth = 21) {
+  constructor() {
+    this.activeScreen = 0;
+    this.screens = {};
+  }
+
+  init(screenArgs, config, updateTrayMenuCallback, updateScreenCallback, displayHeight = 4, displayWidth = 21) {
     this.screenArgs = screenArgs;
+    this.config = config;
     this.updateTrayMenuCallback = updateTrayMenuCallback;
     this.updateScreenCallback = updateScreenCallback;
     this.displayHeight = displayHeight;
     this.displayWidth = displayWidth;
 
-    this.activeScreen = 0;
-    this.screens = [];
-    for (let i = 0; i < screenClasses.length; i++)
-    {
-      this.screens[i] = new screenClasses[i](
+    this.screens = {};
+    for (let i = 0; i < screenClasses.length; i++) {
+      let screen = new screenClasses[i](
         ...this.screenArgs,
         ((index) => { return () => { this.handleTrayUpdated(i); }; })(i),
         ((index) => { return () => { this.handleScreenUpdated(i); }; })(i));
+      this.screens[screen.name] = screen;
     }
-    this.numScreens = this.screens.length;
+
+    this.numScreens = Object.values(this.screens).length;
     this.lastContextMenus = [];
   }
 
@@ -56,8 +63,10 @@ class ScreenManager {
 
   getContextMenus() {
     let output = [];
-    output.push({ label: 'Current: ' + this.getActiveScreen().name });
-    for (const screen of this.screens) {
+    if (this.getActiveScreen()) {
+      output.push({ label: 'Current: ' + this.getActiveScreen().name });
+    }
+    for (const screen of Object.values(this.screens)) {
       output.push(...screen.trayMenu);
     }
     return output;
@@ -65,19 +74,19 @@ class ScreenManager {
 
   setActiveScreen(index) {
     const lastActive = this.activeScreen;
-    this.activeScreen = Math.min(Math.max(index, 0), this.screens.length);
+    this.activeScreen = Math.min(Math.max(index, 0), Object.values(this.screens).length);
 
     if (lastActive == this.activeScreen) {
       return;
     }
-    this.screens[lastActive].deactivate();
-    this.screens[this.activeScreen].activate();
+    Object.values(this.screens)[lastActive].deactivate();
+    Object.values(this.screens)[this.activeScreen].activate();
     this.updateScreenCallback();
     this.updateTrayMenuCallback();
   }
 
   getActiveScreen() {
-    return this.screens[this.activeScreen];
+    return Object.values(this.screens)[this.activeScreen];
   }
 
   getActiveOutput() {
@@ -85,6 +94,10 @@ class ScreenManager {
       return this.getActiveScreen().parsedScreen();
     }
     return ' '.repeat(this.displayHeight * this.displayWidth);
+  }
+
+  initScreens() {
+    Object.values(this.screens).map(screen => screen.init());
   }
 }
 

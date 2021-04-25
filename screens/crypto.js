@@ -3,14 +3,30 @@
 
 const { LoopingScreen } = require('./screen.js');
 const request = require('request');
+const { ConfigPage } = require('../config.js');
 
 class CryptoScreen extends LoopingScreen {
+  constructor(...args) {
+    super(...args);
+    this.name = 'Crypto';
+    this.storePrefix = 'screens-crypto-';
+    this.quotes = new Map();
+    this.configPage = new ConfigPage(this.storePrefix, [
+      { params: {
+        cryptocurrencies: { label: 'Cryptocurrencies',
+          default: 'bitcoin,ethereum,cardano' }
+      }}], this.configPage);
+  }
+
   init() {
     super.init();
-    this.name = 'Crypto';
+    this.initCrypto();
+    this.onStoreChanged('cryptocurrencies', () => this.initCrypto());
+  }
 
+  initCrypto() {
     this.quotes = new Map();
-    for (let crypto of this.nconf.get('cryptocurrencies').split(',')) {
+    for (let crypto of this.getStore('cryptocurrencies').split(',')) {
       this.quotes.set(crypto.trim(), []);
     }
   }
@@ -41,7 +57,9 @@ class CryptoScreen extends LoopingScreen {
             if (percentDirection == 'down') {
               percent *= -1;
             }
-            this.quotes.set(cryptocurrency, [code, price, percent]);
+            if (this.quotes.has(cryptocurrency)) {
+              this.quotes.set(cryptocurrency, [code, price, percent]);
+            }
           }
           resolve();
         });

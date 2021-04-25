@@ -3,9 +3,10 @@
 const { Screen } = require('./screen.js');
 
 class LogoScreen extends Screen {
-  init() {
-    super.init();
+  constructor(...args) {
+    super(...args);
     this.name = 'Logo';
+    this.storePrefix = 'screens-logo-';
 
     // The logo is the 21 keys following each of these characters
     // in the default font.

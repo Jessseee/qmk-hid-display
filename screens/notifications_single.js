@@ -4,9 +4,10 @@
 const NotificationsScreen = require('./notifications.js');
 
 class NotificationsSingleScreen extends NotificationsScreen {
-  init() {
-    super.init();
+  constructor(...args) {
+    super(...args);
     this.name = 'Notifications Single';
+    this.storePrefix = 'screens-notificationsSingle-';
   }
 
   generateScreenOutput() {

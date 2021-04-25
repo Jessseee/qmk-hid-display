@@ -25,9 +25,10 @@ class Notification {
 }
 
 class NotificationsScreen extends LoopingScreen {
-  init() {
-    super.init();
+  constructor(...args) {
+    super(...args);
     this.name = 'Notifications';
+    this.storePrefix = 'screens-notifications-';
     this.notifications = [];
     this.notificationIds = new Set();
     this.updating = false;

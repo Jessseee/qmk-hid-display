@@ -6,9 +6,10 @@ const { Screen } = require('./screen.js');
 const perfmon = require('perfmon');
 
 class PerfScreen extends Screen {
-  init() {
-    super.init();
+  constructor(...args) {
+    super(...args);
     this.name = 'Perf';
+    this.storePrefix = 'screens-perf-';
 
     this.cpu = 0;
     this.mem = 0;
@@ -33,6 +34,7 @@ class PerfScreen extends Screen {
         // Sometimes perfmon doesn't get all the counters working, no idea why.
         // Let's just restart to try it again
         this.log('Could not find all perf counters, restarting perfmon...');
+        this.log('Found: ' + data.counters);
         perfmon.stop();
         perfmon.start();
         return;

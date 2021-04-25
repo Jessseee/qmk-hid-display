@@ -4,15 +4,31 @@
 
 const { LoopingScreen } = require('./screen.js');
 const request = require('request');
+const { ConfigPage } = require('../config.js');
 
 class StocksScreen extends LoopingScreen {
+  constructor(...args) {
+    super(...args);
+    this.name = 'Stocks';
+    this.storePrefix = 'screens-stocks-';
+    this.stocks = new Map();
+
+    this.configPage = new ConfigPage(this.storePrefix, [
+      { params: {
+        stocks: { label: 'Stocks', default: 'TSLA,NFLX,AMZN,AAPL' }
+      }}], this.configPage);
+  }
+
   init() {
     super.init();
-    this.name = 'Stocks';
+    this.initStocks();
+    this.onStoreChanged('stocks', () => this.initStocks());
+  }
 
+  initStocks() {
     // Set the stocks that we want to show
     this.stocks = new Map();
-    for (let stock of this.nconf.get('stocks').split(',')) {
+    for (let stock of this.getStore('stocks').split(',')) {
       this.stocks.set(stock.trim(), 0);
     }
   }
@@ -35,7 +51,9 @@ class StocksScreen extends LoopingScreen {
           if (result && result.length > 1) {
             let price = JSON.parse(result[1]).raw;
             price = price.toFixed(2);
-            this.stocks.set(key, price);
+            if (this.stocks.has(key)) {
+              this.stocks.set(key, price);
+            }
           }
           resolve();
         });
