@@ -14,7 +14,6 @@
   "author": "Brandon Wang",
   "license": "MIT",
   "dependencies": {
-    "@babel/plugin-proposal-class-properties": "^7.13.0",
     "@material-ui/core": "^4.11.3",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
@@ -31,6 +30,7 @@
     "weather-js": "^2.0.0"
   },
   "optionalDependencies": {
+    "@babel/plugin-proposal-class-properties": "^7.13.0",
     "@nodert-win10-20h1/windows.applicationmodel": "^0.1.0",
     "@nodert-win10-20h1/windows.ui.notifications": "^0.1.0",
     "@nodert-win10-20h1/windows.ui.notifications.management": "^0.1.0"
