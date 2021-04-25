@@ -30,6 +30,8 @@ class Screen {
     if (this.screen.length == 0) {
       this.screen = [this.name];
     }
+
+    this.available = true;
   }
 
   init() {

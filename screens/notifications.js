@@ -1,9 +1,10 @@
 // notifications page
 'use strict';
 
+const optional = require("optional");
 const { LoopingScreen } = require('./screen.js');
-const NotificationManagement = require('@nodert-win10-20h1/windows.ui.notifications.management');
-const Notifications = require('@nodert-win10-20h1/windows.ui.notifications');
+const NotificationManagement = optional('@nodert-win10-20h1/windows.ui.notifications.management');
+const Notifications = optional('@nodert-win10-20h1/windows.ui.notifications');
 
 class Notification {
   constructor(userNotification) {
@@ -32,7 +33,10 @@ class NotificationsScreen extends LoopingScreen {
     this.notifications = [];
     this.notificationIds = new Set();
     this.updating = false;
+    this.available = Notifications != null;
+  }
 
+  init() {
     this.currentListener = NotificationManagement.UserNotificationListener.current;
   }
 

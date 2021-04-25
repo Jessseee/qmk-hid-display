@@ -41,7 +41,9 @@ class ScreenManager {
         ...this.screenArgs,
         ((index) => { return () => { this.handleTrayUpdated(i); }; })(i),
         ((index) => { return () => { this.handleScreenUpdated(i); }; })(i));
-      this.screens[screen.name] = screen;
+      if (screen.available) {
+        this.screens[screen.name] = screen;
+      }
     }
 
     this.numScreens = Object.values(this.screens).length;
