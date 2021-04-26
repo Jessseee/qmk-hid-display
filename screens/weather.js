@@ -18,8 +18,7 @@ class WeatherScreen extends LoopingScreen {
     this.configPage = new ConfigPage(this.storePrefix, [
       { params: {
         location: { label: 'Location', default: 'Santa Monica, CA' },
-        temperatureUnits: { label: 'Client ID', 
-          default: 'b9832488ef7147088dbe22b95679d9d4' }
+        temperatureUnits: { label: 'Temperature Units', default: 'F' }
       }}], this.configPage);
   }
 
