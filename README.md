@@ -29,7 +29,6 @@ A small node script that will collect data and send updates to a qmk enabled key
 * The script simply calls various node api/packages to collect data that we want to use for the display on the keyboard oled screen
 * The examples included are:
     * Perf - shows stats for cpu, memory usage (mem), disk activity (dsk), and network bandwidth use (net). As a little bar graph.
-    * Stock - shows current stock price of 4 tech stocks I added, MSFT, AAPL, GOOG, and FB.
     * Weather - shows current weather forecast for the Seattle area.
 * But essentially you can use anything that fits into the 21x4 character screen and is available in the font image
 * Once per second, the script sends over the screen data to the keyboard one line at a time which is then sent to the slave oled on the keyboard

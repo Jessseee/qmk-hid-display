@@ -4,17 +4,13 @@ const { merge } = require('lodash');
 const LogoScreen = require('./screens/logo.js');
 const SpotifyScreen = require('./screens/spotify.js');
 const PerfScreen = require('./screens/perf.js');
-const StocksScreen = require('./screens/stocks.js');
 const WeatherScreen = require('./screens/weather.js');
-const CryptoScreen = require('./screens/crypto.js');
 const NotificationsScreen = require('./screens/notifications.js');
 const NotificationsSingleScreen = require('./screens/notifications_single.js');
 
 const screenClasses = [
   LogoScreen,
   PerfScreen,
-  StocksScreen,
-  CryptoScreen,
   WeatherScreen,
   SpotifyScreen,
   NotificationsScreen,
@@ -52,13 +48,13 @@ class ScreenManager {
 
   handleTrayUpdated(index) {
     const newContextMenu = this.getContextMenus();
-    if (newContextMenu != this.lastContextMenus) {
+    if (newContextMenu !== this.lastContextMenus) {
       this.updateTrayMenuCallback();
     }
   }
 
   handleScreenUpdated(index) {
-    if (index == this.activeScreen) {
+    if (index === this.activeScreen) {
       this.updateScreenCallback();
     }
   }
